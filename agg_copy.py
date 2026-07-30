@@ -2,7 +2,7 @@
 
 The copy task exposes an explicit memory load M = (L-1)/2 symbols, which is the
 quantity the firing-floor bound rho >= H_b^-1(log2 M / H) is stated in.  Groups
-by (epochs, variant, L, theta); prints quality + activity per M, then the
+by (epochs, variant, L, theta, dig_reg, H); prints quality + activity per M, then the
 M-slope of activity per variant.  Pure re-read of logged JSON, no training.
 
 Two runs of the copy task exist at different training budgets (6 epochs /
@@ -34,11 +34,22 @@ for f in sorted(glob.glob(os.path.join(RUNS, "*.json"))):
     if r.get("task") != "copy": continue
     if WANT_EPOCHS is not None and r["epochs"] != WANT_EPOCHS: continue
     th = r["analog"]["theta"] if r.get("analog") else None
-    groups[(r["epochs"], r["variant"], r["L"], th)].setdefault(r["seed"], r)
+    dr = r.get("dig_reg") or {}
+    reg = (dr.get("dig_noise", 0.0), dr.get("dig_bits", 0), dr.get("wd", 0.0))
+    groups[(r["epochs"], r["variant"], r["L"], th, reg, r["H"])].setdefault(r["seed"], r)
 groups = {k: list(v.values()) for k, v in groups.items()}
 
 order = {"digital": 0, "spikeout": 1, "analog": 2, "spikestate": 3}
-keys = sorted(groups, key=lambda k: (k[0], k[2], order.get(k[1], 9), k[3] or 0))
+NOREG = (0.0, 0, 0.0)
+
+def label(k):
+    n = k[1] + ("" if k[3] is None else " th=%g" % k[3])
+    if k[4] != NOREG:
+        n += " reg(n=%g,b=%d,wd=%g)" % k[4]
+    if k[5] != 256:
+        n += " H=%d" % k[5]
+    return n
+keys = sorted(groups, key=lambda k: (k[0], k[2], order.get(k[1], 9), k[3] or 0, k[4], -k[5]))
 CHANCE = 1.0 / 16
 
 print("COPY TASK  (K=16 alphabet, chance acc = %.4f, loss/metric on recalled half only)" % CHANCE)
@@ -48,7 +59,7 @@ print("| ep | M = (L-1)/2 | variant | n seeds | acc | bpc | rate_emitted | rate_
 print("|---|---|---|---|---|---|---|---|---|")
 for k in keys:
     rs = sorted(groups[k], key=lambda r: r["seed"])
-    name = k[1] + ("" if k[3] is None else " th=%g" % k[3])
+    name = label(k)
     print("| %d | %d | `%s` | %d (%s) | %s | %s | %s | %s | %s |" % (
         k[0], (k[2] - 1) // 2, name, len(rs), ",".join(str(r["seed"]) for r in rs),
         ms([r["acc"] for r in rs]), ms([r["bpc"] for r in rs]),
@@ -61,30 +72,32 @@ for ep in sorted({k[0] for k in groups}):
     print("M-dependence of activity (the bound's prediction: state-in-spikes activity RISES with M):")
     for v in ("digital", "spikeout", "analog", "spikestate"):
         row = []
-        for k in sorted([k for k in groups if k[0] == ep and k[1] == v], key=lambda k: k[2]):
+        for k in sorted([k for k in groups if k[0] == ep and k[1] == v], key=lambda k: (k[2], -k[5])):
             rs = groups[k]
             row.append(((k[2] - 1) // 2, mean([r["rate_state"] for r in rs]),
-                        mean([r["rate_emitted"] for r in rs]), k[3]))
+                        mean([r["rate_emitted"] for r in rs]), label(k)))
         if not row: continue
         print("  %-11s " % v + "  ".join(
-            "M=%d%s: state %.3f / emit %.3f" % (t[0], "" if t[3] is None else " th=%g" % t[3], t[1], t[2])
+            "M=%d (%s): state %.3f / emit %.3f" % (t[0], t[3], t[1], t[2])
             for t in row))
 
     print()
     print("Paired acc/bpc delta vs digital at the same (L, seed):")
     for L in sorted({k[2] for k in groups if k[0] == ep}):
-        base = {r["seed"]: r for r in groups.get((ep, "digital", L, None), [])}
+      for H in sorted({k[5] for k in groups if k[0] == ep and k[2] == L}, reverse=True):
+        base = {r["seed"]: r for r in groups.get((ep, "digital", L, None, NOREG, H), [])}
         if not base: continue
-        for k in sorted([k for k in groups if k[0] == ep and k[2] == L and k[1] != "digital"],
-                        key=lambda k: (order.get(k[1], 9), k[3] or 0)):
-            rs = [r for r in sorted(groups[k], key=lambda r: r["seed"]) if r["seed"] in base]
-            if not rs: continue
-            da = [r["acc"] - base[r["seed"]]["acc"] for r in rs]
-            db = [r["bpc"] - base[r["seed"]]["bpc"] for r in rs]
-            # fraction of the baseline's above-chance margin that the variant keeps
-            keep = [max(0.0, r["acc"] - CHANCE) / (base[r["seed"]]["acc"] - CHANCE)
-                    for r in rs if base[r["seed"]]["acc"] > CHANCE]
-            name = k[1] + ("" if k[3] is None else " th=%g" % k[3])
-            print("  M=%-3d %-14s dacc %+.4f (sd %.4f)  dbpc %+.4f (sd %.4f)  margin kept %s  n=%d" % (
-                (L - 1) // 2, name, mean(da), sd(da), mean(db), sd(db),
-                ("%.2f" % mean(keep)) if keep else "n/a", len(rs)))
+        for k in sorted([k for k in groups if k[0] == ep and k[2] == L and k[5] == H
+                         and not (k[1] == "digital" and k[4] == NOREG)],
+                        key=lambda k: (order.get(k[1], 9), k[3] or 0, k[4])):
+              rs = [r for r in sorted(groups[k], key=lambda r: r["seed"]) if r["seed"] in base]
+              if not rs: continue
+              da = [r["acc"] - base[r["seed"]]["acc"] for r in rs]
+              db = [r["bpc"] - base[r["seed"]]["bpc"] for r in rs]
+              # fraction of the baseline's above-chance margin that the variant keeps
+              keep = [max(0.0, r["acc"] - CHANCE) / (base[r["seed"]]["acc"] - CHANCE)
+                      for r in rs if base[r["seed"]]["acc"] > CHANCE]
+              name = label(k)
+              print("  M=%-3d %-14s dacc %+.4f (sd %.4f)  dbpc %+.4f (sd %.4f)  margin kept %s  n=%d" % (
+                  (L - 1) // 2, name, mean(da), sd(da), mean(db), sd(db),
+                  ("%.2f" % mean(keep)) if keep else "n/a", len(rs)))

@@ -1195,3 +1195,63 @@ same 4-arm control on copy at M=16 is now the highest-value remaining data cell.
 
 **Reproduce:** `run_digreg.sh <gpu>`; table via `python agg_charlm.py`; 12 run JSONs in
 `ssm3way_runs/digital_charlm_s*_reg_*.json`.
+
+---
+
+## 2026-07-31 — LAUNCHED (pre-registered): regularization control on the COPY task
+
+**Why.** The char-LM regularization control (bb79f7f) retracted the "analog beats
+digital" headline: training-time state noise sigma=0.02 on the digital baseline was
+worth −0.309 bpc, 2.1× the entire analog advantage. Every copy-task "margin kept"
+figure (spikeout 0.92/0.46, analog 0.53/0.31, spikestate 0.08/0.00 at M=16/32) was
+measured against the same unregularized digital baseline and never got this control.
+The ledger currently assumes the bias runs the same direction (margins = upper bounds).
+
+**The interesting part: the paper's central claim predicts the opposite.** The
+datapath-degradation principle says a degradation is cheap exactly when it hits a
+part of the datapath the task does not depend on. Copy depends on precise state
+retention, so state noise should HURT the digital baseline on copy — unlike char-LM,
+where it helped. This is the first experiment where the principle and
+reasoning-by-analogy from char-LM make opposite predictions.
+
+**Design.** `run_digreg_copy.sh` (lock-dir work queue, idempotent). 12 cells =
+2 arms × 2 loads × 3 seeds, all digital variant at ep30/n80k (the definitive copy
+budget): arm `n0.02` (noise only — the mechanism that carried the char-LM effect)
+and arm `n0.02_b6` (noise + 6-bit quant = full analog state degradation minus
+send-on-delta; quant was worth 0 on char-LM but is lossy in exactly the way precise
+recall cannot absorb) × L ∈ {33, 65} (M = 16, 32). Dropped arms: `wd` (exactly 0 on
+char-LM), `n0.05` (dose saturated). Outputs
+`ssm3way_runs/digital_copy_L<L>_s<seed>_reg_<arm>_ep30.json`.
+
+**Pre-registered readings (written before any cell landed):**
+- **(A) noise IMPROVES digital on copy** → baseline under-regularized there too; all
+  margin-kept figures shrink; copy conclusions get MORE negative for the
+  neuromorphic routes. (The ledger's standing assumption.)
+- **(B) noise HURTS digital on copy** → out-of-sample confirmation of the
+  datapath-degradation principle, and the existing copy margins stand as fair.
+- **(C) no effect** → margins stand.
+- The principle predicts (B). Analogy from char-LM predicts (A). Either outcome is
+  reportable; (B) would be the stronger paper result (the central claim would have
+  survived a designed opportunity to fail).
+
+**Aggregator note.** `agg_copy.py` group key extended with the `dig_reg` config
+(third instance of the group-key trap, caught BEFORE the cells landed this time);
+old JSONs lack `dig_reg` and default to (0,0,0), so existing tables are unchanged.
+
+**A FOURTH group-key bug, found by verifying the patch instead of trusting it.**
+`agg_copy.py` globbed every copy JSON but keyed on `(epochs, variant, L, theta)` with
+no `H`. The shrink-H row wrote copy **L=33 cells at H = 64/96/128**, which collide
+with the main row's H=256 cells at the same `(epochs, variant, L, theta)` and win the
+per-seed slot on filename order (`..._s0_H128_ep30.json` sorts before
+`..._s0_ep30.json`). So regenerating the table silently reported the **H=128** cell as
+the M=16 digital reference — acc **0.5944** instead of the true **0.6302** — and
+shifted every M=16 margin-kept figure (spikeout 0.92→0.98, analog 0.53→0.56,
+spikestate 0.08→0.17). The published ledger numbers were measured before the
+shrink-H row existed and are correct; only regeneration was affected. Fixed: `H` is
+in the group key, paired deltas are computed against the digital reference **at the
+same width**, and the label carries `H=` when it is not 256. Verified post-fix output
+reproduces the published M=16 column (digital 0.6302±0.0106, margins 0.92/0.53/0.08)
+and the shrink-H margins (0.17/0.18/0.20 at H=128/96/64, matching `agg_shrinkH.py`).
+**Standing lesson, now paid for four times: this aggregator family pools on any
+dimension absent from its group key. Adding a cell type means auditing the key AND
+re-verifying that a previously published column still renders identically.**
