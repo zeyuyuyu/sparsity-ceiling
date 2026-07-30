@@ -1255,3 +1255,66 @@ and the shrink-H margins (0.17/0.18/0.20 at H=128/96/64, matching `agg_shrinkH.p
 **Standing lesson, now paid for four times: this aggregator family pools on any
 dimension absent from its group key. Adding a cell type means auditing the key AND
 re-verifying that a previously published column still renders identically.**
+
+## 2026-07-30 ~21:40Z — COPY-SIDE REGULARIZATION CONTROL, M=16 COLUMN: the pre-registered branch (A) landed (noise HELPS on copy too), and the arm-to-prediction mapping in the pre-registration was WRONG — the real out-of-sample test is the quantization arm, and there the principle HOLDS
+
+Row still running (7/12 cells, 5 on disk; L=65/M=32 cells and `L33_s2_b6` in flight).
+The M=16 σ=0.02 arm is COMPLETE at 3 seeds, which is the decision cell.
+Copy L=33 (M=16, K=16), ep30/n80k, H=256, 87,889 params, chance acc 0.0625 / bpc 4.000.
+
+| arm (digital variant) | n | acc | bpc | paired Δbpc vs plain digital | rate_state |
+|---|---|---|---|---|---|
+| plain digital (reference) | 3 | 0.6302±0.0106 | 1.4201±0.0320 | — | 1.0000 |
+| + state noise σ=0.02 | 3 | **0.6628±0.0090** | **1.2702±0.0286** | **−0.1499±0.0333** (all 3 seeds negative: −0.112 / −0.173 / −0.165) | 1.0000 |
+| + σ=0.02 + 6-bit quant | 2 | 0.5570 | 1.6738 | **+0.2449** (+0.269 / +0.220) | 0.9542 / 0.9794 |
+
+**BRANCH (A) LANDED on the noise arm: state noise HELPS the digital baseline on copy
+too (−0.150 bpc, +0.033 acc, all three seeds).** The pre-registration said the
+datapath-degradation principle predicts (B) — noise should HURT a precise-recall task
+— and reasoning-by-analogy-from-char-LM predicts (A). **Analogy won; the principle's
+prediction as written failed.** Record it that way and do not soften it. Consequences
+per the pre-registration: the copy digital baseline was under-regularized, so every
+published copy "margin kept" figure is an upper bound and shrinks. Recomputed at M=16
+against the properly regularized reference (acc 0.6628, digital margin 0.6003):
+spikeout **0.92 → 0.87**, analog θ=0.2 **0.53 → 0.50**, spikestate **0.08 → 0.074**;
+paired Δbpc vs the regularized reference becomes spikeout **+0.274**, analog
+**+1.507**, spikestate **+2.659**. The shrink is modest, so the state-fidelity
+ordering and the workload dichotomy are unaffected in direction and in magnitude.
+
+**BUT THE PRE-REGISTRATION MIS-ASSIGNED ITS OWN ARMS, and fixing that is the real
+result of this row.** Verified in `ssm3way.py:120-131` rather than assumed:
+`_degrade()` gates the additive noise behind `if self.training`, but the 6-bit
+quantizer is **NOT** gated — it runs at inference too (the rails clamp is always on in
+both arms, so the two arms differ by exactly the quantizer). So:
+- **`dig_noise` is a training-time regularizer, NOT a datapath degradation.** At
+  inference the digital+noise net has a fully exact state. The principle says nothing
+  about it, so it was never a valid test of the principle — (A) landing is a statement
+  about baseline tuning, not about datapaths.
+- **`dig_bits` IS an inference-time state-precision degradation** — the only arm in
+  this row that degrades the datapath the way analog does.
+**And in that arm the principle holds out-of-sample:** the same 6-bit quantizer costs
+**nothing on char-LM** (σ=0.02 vs σ=0.02+b6 differ by −0.0018 bpc against seed sd
+0.017–0.024) and **+0.387 bpc on copy** (+0.381 / +0.393 vs the noise-only arm at
+matched σ). A statistical task tolerates a lossy state; a precise-recall task does
+not — exactly the prediction. Its footprint is visible in the state itself:
+`rate_state` drops 1.0000 → 0.954/0.979 because the quantizer zeroes small-magnitude
+units, i.e. the loss is real and not a training artifact.
+
+**HONESTY LABELS, because this matters for how it can be written up.** The
+quantization contrast is **post-hoc identified** (n=2 seeds, third still training) —
+the pre-registration did not name it as the test, so it must be reported as a
+post-hoc-but-mechanistically-motivated confirmation, NOT as a pre-registered win. The
+pre-registered test, as written, failed. The correct summary sentence is: *the
+principle's designed test was mis-specified because the control arm turned out to be
+training-time-only; the arm that does degrade the inference datapath behaves exactly as
+the principle predicts, at n=2, and a properly regularized copy baseline shrinks every
+neuromorphic margin-kept figure by 3–5 points without changing the ordering.*
+
+One weakly-supporting quantitative detail: the noise benefit is **~2× smaller on copy
+than on char-LM** (−0.150±0.033 vs −0.309±0.024). Even as a pure regularizer, state
+stochasticity buys less on the task that needs precise retention — the right direction
+for the principle, but a regularizer-strength observation, not a datapath one.
+
+**Still pending in this row:** the M=32 (L=65) column for both arms, plus
+`L33_s2_b6`, which will take the quantization contrast to 3 seeds and say whether the
+noise benefit also attenuates as memory load doubles. Table: `python agg_copy.py 30`.
