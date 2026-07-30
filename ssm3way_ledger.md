@@ -784,3 +784,33 @@ Predicted floors under the corrected `M*log2(K)/H` reading: H=64 -> 0.500 (bindi
 **Incidental:** spikestate acc *improves* slightly as H shrinks 256 -> 96 (0.107 -> 0.163), i.e. the 1-bit-state net is not helped by width on this task at all — further evidence the failure is not about capacity. Energy proxy at H=64: spikestate 20.3k vs digital 43.0k pJ/token, buying 0.20 of the margin (same "cheap and useless" pattern).
 
 **Row state at this tick:** 9/18 shrink-H cells on disk; the main ep30 copy row is **DONE** (43 cells, `COPY ROW EP30 DONE`), which freed GPUs 0/1/3 — three more workers added there, so all 8 A800s now run shrink-H and 17/18 cells are claimed. Only `spikestate_copy_L33_s2_H128_ep30` is unclaimed and will be taken by the first worker to free. The H=128 column (floor 0.042) and the two remaining H=96 spikestate seeds are the last data; per the anti-correlated trend above the expectation is rho in the 0.35-0.45 range at H=128, i.e. the trend continues and the verdict does not change.
+
+## 2026-07-31 (tick) — SHRINK-H BOUND ROW: 16/18 cells in, and the bound arm CLOSES as a negative. Criterion (ii) refuted; new anti-capacity finding.
+
+Copy L=33 (M=16, K=16 → demand `M·log₂K` = 64 bits), ep30/n80k, chance acc 0.0625 / bpc 4.000.
+Still training: `spikestate_copy_L33_s{1,2}_H128_ep30` (GPUs 3/7). Everything else on disk.
+
+| H | params | predicted floor `H_b⁻¹(64/H)` | digital acc | spikestate acc | spikestate state activity ρ | margin kept | certificate `H·H_b(ρ)` |
+|---|---|---|---|---|---|---|---|
+| 256 | 87,889 | 0.0026 | 0.6302±0.0106 (n=3) | 0.1071±0.0164 (n=3) | 0.4960±0.0106 | 0.079 | 255.9 bits |
+| 128 | 33,169 | 0.042  | 0.5944±0.0023 (n=3) | 0.1513 (n=1) | 0.3469 (n=1) | 0.167 | 119.2 bits |
+| 96  | 18,289 | 0.174  | 0.5889±0.0065 (n=3) | 0.1570±0.0063 (n=3) | 0.3909±0.0336 | 0.180 | 92.7 bits |
+| 64  | 10,513 | 0.500  | 0.5600±0.0095 (n=3) | 0.1619±0.0039 (n=3) | 0.2496±0.0252 | 0.200 | 51.9 bits |
+
+**Validity gate (i): PASSES at every width.** Digital learns copy far above chance at all H (0.630/0.594/0.589/0.560) — 9× to 8.9× chance — so copy at M=16 is not width-limited anywhere in H∈[64,256] and every cell is a legitimate bound test, not a capacity-limited one.
+
+**Criterion (ii) — REFUTED.** Confirmation required ρ to sit at/above the floor AND *rise* as H shrinks (0.0026→0.042→0.174→0.500, a 190× swing). Measured ρ instead goes 0.496 → 0.347 → 0.391 → 0.250: it **falls**, and the H=128/H=96 points are statistically indistinguishable (0.347 vs 0.391±0.034). At H=64 ρ lands *below* its own floor. Measured LIF state activity is **width-determined, not information-determined** — criterion (iii)'s shape. The ~0.25–0.50 activity band is an optimization/architecture artifact of the LIF recurrent state, not an information-theoretic floor.
+
+**NEW, and the sharpest evidence yet that this is trainability and not capacity: spikestate gets BETTER as it gets narrower, in exact anti-correlation with its own capacity certificate.** Margin kept rises monotonically 0.079 → 0.167 → 0.180 → 0.200 as H falls 256→64, while the certificate `H·H_b(ρ)` falls 255.9 → 119.2 → 92.7 → 51.9 bits against a fixed 64-bit demand (4.0× surplus → 0.81× deficit). The variant with **4× surplus capacity is the worst** and the one in **12-bit deficit is the best**. An information bottleneck cannot produce that ordering; an optimization pathology can (a wider 1-bit recurrent state is harder to train, not more capacious in practice).
+
+**This independently re-confirms the earlier RETRACTION of the "contrapositive earns its keep" reading** (entry 06860c4, retracted in cef2101). The H=64 "predicted incapacity, observed failure" coincidence is now contradicted at three widths: capacity is ample at H=256/128/96 and the net fails there too — worse, in fact. The certificate is **necessary-but-not-sufficient and non-diagnostic at this scale**.
+
+**Reportable verdict on the bound arm (final unless the two pending cells surprise):** `ρ ≥ H_b⁻¹(M·log₂K/H)` is **not empirically validated by this architecture at this scale, in either direction**. It stays in the paper as theory with a stated, *tested* scope limit. Defensible sentence:
+
+> *We could not construct a regime in which the firing-floor bound binds on a network that still learns the task. Across a 190× swing in the predicted floor (H = 256 → 64), measured LIF state activity is anti-correlated with the floor, and spiking-state accuracy improves as the predicted capacity shrinks — so the failure of a spiking recurrent state on precise recall is an optimization failure the bound does not explain.*
+
+**Never write "the bound is confirmed" or "the contrapositive earns its keep."**
+
+**Unaffected by all of this:** the 3-seed char-LM headline (analog-state 0.266 activity at +0.017 bpc) and the copy state-fidelity dichotomy (margin kept: continuous 0.92/0.46 > lossy-analog 0.53/0.31 > 1-bit 0.08/0.00 at M=16/32, matched emitted rates). Those are the paper's actual contribution and never depended on the bound.
+
+**Pending:** the two `spikestate H=128` seeds only tighten an n=1 cell whose ρ already sits between its neighbours; per the trend, no verdict change expected. Reproduce the table with the JSONs under `ssm3way_runs/*_H*_ep30.json`.
