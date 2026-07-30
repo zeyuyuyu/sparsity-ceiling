@@ -475,3 +475,50 @@ this time genuinely above chance (acc 0.107 vs 0.0625), unlike the 6-epoch row w
 nothing, so the M=32 and M=64 columns will for the first time be a real test of whether spikestate
 activity rises with M. Do not read M-dependence off the single M=16 point. Weak prior signal only:
 analog margin kept 0.53 at M=16 (n=3) vs 0.31 at M=32 (n=1), consistent with the gap widening.
+
+### 2026-07-31 (tick) — figure script + a correction to what the copy row can actually test
+
+The ep30 copy row is still running (17/36 main cells done, 8 alive; M=16 complete at 3
+seeds, M=32 partial, M=64 just started). No GPU was idle, so this tick did a zero-GPU
+step: `plot_ssm3way.py`, the two-panel figure the finished row will need, plus the
+derivation check below.
+
+**Correction — the firing-floor bound predicts far more than we had been assuming, because
+`M` in `rho >= H_b^-1(log2 M / H)` counts distinguishable memory STATES, not symbols.**
+Copying M symbols from a K=16 alphabet requires distinguishing K^M states, so the numerator
+is `M * log2 K` bits, not `log2 M`. At H=256:
+
+| M (symbols) | bits to retain | predicted floor rho |
+|---|---|---|
+| 16 | 64 | 0.042 |
+| 32 | 128 | 0.110 |
+| 64 | 256 | **0.500** |
+
+Under the old (wrong) symbol reading the predicted floors were 0.0018 / 0.0023 / 0.0028 —
+three orders below anything measurable, which would have made the whole row uninformative.
+The state reading makes M=64 a genuinely sharp prediction.
+
+**What this means for the pending columns, stated before the data lands so it cannot be
+fitted after the fact:**
+- Measured spikestate state activity at M=16 is **0.4960 +- 0.0106** (seeds 0/1/2) against a
+  predicted floor of 0.042. The bound is a LOWER bound, so this is consistent but **12x
+  loose — non-binding, therefore not a test.** Same will be true at M=32 (floor 0.110).
+- **M=64 is the only informative cell in the row**: the floor rises to 0.500, i.e. right at
+  the activity spikestate already shows. If spikestate retains the sequence there and its
+  activity stays near 0.5 or climbs, that is the first real confirmation of M-dependence.
+- **But the binding condition is retention, and retention is already failing.** At M=16
+  spikestate keeps only 0.08 of the digital baseline's above-chance margin (acc 0.107 vs
+  digital 0.630). A net that stores nothing is trivially consistent with any floor. So the
+  most likely M=64 outcome is *the bound is satisfied and uninformative*, and the honest
+  write-up of that is "untested", not "confirmed".
+- Practical consequence for a real test later: the bound only bites when `M*log2 K / H`
+  approaches 1, i.e. when the memory demand approaches the width. Testing it properly means
+  **shrinking H** (e.g. H=64 at M=16 gives a floor of 0.50 on a task the net can still
+  learn), not pushing M up on a net that has already stopped learning. That is a cheap
+  follow-up row and is the right way to get a binding test.
+
+`plot_ssm3way.py` (committed) renders both panels from logged JSON only: (a) margin kept vs
+M per variant, (b) activity vs M with the bound curve overlaid and shaded. It de-duplicates
+the theta-calibration cell against the row cell, excludes non-theta=0.2 analog cells, and
+annotates any cell with n<3 rather than silently averaging. Regenerate with
+`python plot_ssm3way.py 30` -> `fig_ssm3way.pdf`.
