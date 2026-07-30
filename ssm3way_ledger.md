@@ -578,3 +578,49 @@ stable across two memory loads rather than at a single point. Energy footnote un
 still unfavourable to analog: at M=32, spikeout 125.2k pJ/tok at 0.46 margin vs analog 231.0k
 at 0.31 — analog is worse on both axes on this task, for the datapath reason already logged
 (only W_mix gets event pricing).
+
+### 2026-07-31 ~01:10 (server local) / 2026-07-30 17:10Z — the M=32 FLOOR CONTROL landed, and it KILLS the copy task as a test of the bound's M-dependence
+
+Status: ep30 copy row 25/36 cells, 8 jobs alive on the M=64 (L=129) column, all 8 A800s busy.
+New since last tick: `spikestate_copy_L65_s{0,1,2}_ep30.json` (M=32 floor control, 3 seeds) and
+`digital_copy_L129_s2_ep30.json` (first M=64 cell).
+
+**spikestate at M=32, 3 seeds: acc 0.0623 +- 0.0012, bpc 4.0050 +- 0.0036 — that is EXACTLY chance**
+(chance acc 1/16 = 0.0625, chance bpc = log2 16 = 4.000). Paired vs digital: dacc -0.2527 +- 0.0037,
+dbpc +1.1122 +- 0.0132, **margin kept 0.00**. Per-seed rate_state 0.4211 / 0.3711 / 0.4233.
+
+**THE FINDING — the copy task CANNOT test the firing-floor bound's M-dependence, and this is now
+settled rather than pending.** Measured spikestate state activity *falls* with load: 0.4960 +- 0.0106
+(M=16) -> 0.4052 +- 0.0295 (M=32), the opposite of the bound's "activity rises with M" prediction.
+But that is **not** evidence against the bound, for the reason pre-registered before this column
+landed: the bound `rho >= H_b^-1(M*log2K / H)` prices a network that actually *retains* the sequence,
+and at M=32 spikestate retains **nothing at all** (margin kept 0.00, indistinguishable from chance).
+Activity falls because the net has given up on retention, not because it beat a floor. Under the
+corrected `M*log2K` reading at H=256 the predicted floors are 0.042 / 0.110 / 0.500 for M = 16/32/64,
+so M=32's measured 0.405 is satisfied-but-3.7x-loose — non-binding, exactly as pre-registered.
+
+**Consequence for the running M=64 column: it will not rescue the test either.** spikestate is already
+at chance at M=32; it cannot plausibly retain 64 symbols. M=64 is the only load where the bound binds
+(floor 0.500), but binding requires a net that stores the information, and this one demonstrably does
+not. So the honest verdict is structural, not a matter of waiting: **spikestate's learnability ceiling
+on copy (~M=16, acc 0.107 vs chance 0.0625) sits BELOW the load at which the bound starts to bind
+(M=64). Raising M can never produce a binding-and-meaningful test on this task.** Report the bound's
+M-dependence as **UNTESTED, and untestable by this route** — do not cite any copy column as a bound test.
+
+**This promotes the previously-recommended alternative from "nice follow-up" to "the only viable test":
+shrink H, don't raise M.** The bound bites when `M*log2K / H -> 1`. At M=16 — a load spikestate can
+still partially learn — H=64 gives `16*4/64 = 1.0`, i.e. a predicted floor of **0.500** on a
+still-learnable task, and H=96/128 give floors of 0.174/0.042 as a graded series. That is a cheap row
+(smaller nets than the current ones) and it is the experiment that can actually confirm or refute the
+bound. Recommended as the next launch once the M=64 column frees the GPUs.
+
+**Third reading — the state-fidelity ordering extends to a zero:** at M=32 the margin-kept series by
+state exactness is continuous 0.46 (spikeout) > lossy-analog 0.31 > 1-bit 0.00 (spikestate), at matched
+emitted rates ~0.41-0.49. A 1-bit recurrent state does not merely degrade precise-recall performance at
+this load, it eliminates it. This sharpens the workload dichotomy: for precise-recall workloads the
+state must stay in an exact datapath; spiking the state is not a degraded option, it is a non-option.
+Energy footnote: spikestate M=32 is the cheapest cell (102.0k pJ/tok) and buys literally nothing, which
+is the cleanest illustration that a pJ number is meaningless without the quality it purchased.
+
+Reproduce: `python agg_copy.py 30` in /work/zeyuwang/neuro_poc (budgets never pooled; ep=6 row remains
+labeled INCONCLUSIVE). Configs/seeds in each `ssm3way_runs/*.json`.
