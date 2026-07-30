@@ -72,3 +72,60 @@ Numbers below are sanity checks on plumbing, not evidence about the hypothesis.
 Launch `digital × charlm` (seed 0) as soon as one GPU frees, then the other three
 cells on the same task/seed, then the θ sweep for `analog`, then `copy` at 2-3
 memory loads `M` to test the bound's `M`-dependence across variants.
+
+## RESULTS — charlm row, seed 0 (2026-07-30, A800 GPUs 4-7, first GPU numbers)
+
+Config: identical for all 4 — E=64 H=256 L=128 bs=64 epochs=6 lr=2e-3 lam=0 (NO sparsity reg,
+so these are NATURAL activity rates), vocab 284, params 173,596 (exactly matched, verified),
+analog theta=0.10 noise=0.02 bits=6 rail=4.0. Logs+JSON: /work/zeyuwang/neuro_poc/ssm3way_runs/.
+
+| variant    | bpc    | acc    | rate_emitted | rate_state | E pJ/tok (opt) | E pJ/tok (cons) |
+|------------|--------|--------|--------------|------------|----------------|-----------------|
+| digital    | 3.3175 | 0.3489 | 1.00         | 1.00       | 712,448        | 712,448         |
+| spikeout   | 4.3867 | 0.1993 | 0.4108       | 1.00       | 435,211        | 435,211         |
+| analog     | 3.1804 | 0.3794 | 0.7224       | 0.9925     | 452,643        | 627,811         |
+| spikestate | 3.6056 | 0.3011 | 0.6668       | 0.6668     | 159,509        | 159,509         |
+
+### Verdict on the hypothesis — SPLIT. Half holds, half FAILS.
+
+1. QUALITY half HOLDS (and slightly over-delivers): analog (bpc 3.180) MATCHES and in fact
+   beats digital (3.318) at identical capacity, despite state noise sigma=0.02 and 6-bit state
+   quantization. Analog-state dynamics are NOT a quality tax at this scale. Plausible cause:
+   noise+quantization act as regularizer, and send-on-delta adds a mild nonlinearity to an
+   otherwise linear recurrence. (Single seed — needs 2 more seeds before this is a claim.)
+
+2. SPARSITY half FAILS at theta=0.10: analog event rate is 0.72, i.e. ABOVE the ~50% figure,
+   not "far below" it. The pre-training risk recorded above (0.86) survived training only
+   partially (0.86 -> 0.72). So the non-spiking route does NOT automatically buy sparsity —
+   it buys the FREEDOM to be sparse (no bound applies to it) without yet exercising it.
+   Whether theta / a target-rate penalty can push events well under 0.5 with bpc intact is
+   now THE open question, and the honest current answer is: unproven.
+
+3. spikeout confirms its predicted signature: rate_state = 1.00 exactly, rate_emitted 0.41 —
+   sparsity lives ONLY in the output, the recurrent state stays fully dense. Mechanism as
+   described in the memo. But it is also the WORST variant on quality by a wide margin
+   (bpc 4.39 vs 3.32 digital, acc 0.20 vs 0.35) — at this budget, LIF-ing the output costs
+   more quality than carrying the state in spikes does. Negative result for SPikE-SSM-style
+   at this scale; report as such.
+
+4. FLOOR CONTROL behaves as the bound predicts: spikestate settles at 0.667 firing — above
+   0.5, consistent with the firing-floor bound, and it got there with NO pressure to be dense
+   (lam=0). It is the only variant inside the bound scope.
+
+### Honest caveats / accounting warnings (do not drop these)
+- ENERGY RANKING CURRENTLY FAVORS spikestate (159k pJ), NOT analog (452-628k). This is an
+  accounting consequence of WHERE events sit, not a physics win: spikestate turns BOTH W_mix
+  and W_out into AC, while analog pays MAC-priced W_in and W_out and only gets AC/event pricing
+  on W_mix. Any "analog is the efficient route" claim would be FALSE on these numbers as they
+  stand. The energy story for analog depends on driving the event rate down (see open question).
+- Absolute quality is LOW for all four (bpc 3.2-4.4 at 6 epochs; the earlier lm_poc ANN reached
+  bpc 2.62). All variants are undertrained — comparisons are at matched-but-low quality.
+- n=1 seed, one task, one width. Nothing here is a 3-seed claim yet.
+- Graded analog events are priced both ways because a graded event is not a 1-bit spike; the
+  conservative column is the defensible one for analog.
+
+### NEXT (in order)
+(1) seeds 1,2 for all 4 cells -> 3-seed means, turns item 1 into a claim.
+(2) analog theta sweep (0.1 / 0.25 / 0.5 / 1.0) + target-rate penalty: can event rate go
+    below 0.5, ideally to ~0.1, with bpc holding near 3.18? This decides the whole direction.
+(3) copy task at 2-3 memory loads M — the bound is stated in M, charlm does not expose it.
