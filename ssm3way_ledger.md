@@ -129,3 +129,50 @@ analog theta=0.10 noise=0.02 bits=6 rail=4.0. Logs+JSON: /work/zeyuwang/neuro_po
 (2) analog theta sweep (0.1 / 0.25 / 0.5 / 1.0) + target-rate penalty: can event rate go
     below 0.5, ideally to ~0.1, with bpc holding near 3.18? This decides the whole direction.
 (3) copy task at 2-3 memory loads M — the bound is stated in M, charlm does not expose it.
+
+## ANALOG THETA SWEEP — same tick, and it SUPERSEDES the "sparsity half FAILS" verdict above
+
+The verdict above was measured at theta=0.10 ONLY. Sweeping the send-on-delta threshold
+(seed 0, everything else identical, lam=0):
+
+| theta | bpc    | acc    | rate_emitted | rate_state | E pJ/tok (cons) |
+|-------|--------|--------|--------------|------------|-----------------|
+| 0.10  | 3.1804 | 0.3794 | 0.7224       | 0.9925     | 627,811         |
+| 0.25  | 3.2112 | 0.3743 | 0.5570       | 0.9935     | 577,941         |
+| 0.50  | 3.2362 | 0.3702 | 0.4851       | 0.9927     | 556,265         |
+| 1.00  | 3.3290 | 0.3526 | 0.2788       | 0.9923     | 494,091         |
+| (digital baseline: bpc 3.3175, activity 1.00) | | | | | |
+| (spikestate floor control: bpc 3.6056, activity 0.6668) | | | | | |
+
+### CORRECTED VERDICT: the hypothesis now HOLDS on this task.
+
+At theta=1.0 the analog-state SSM emits events at rate 0.279 -- WELL below the ~0.5 region --
+while scoring bpc 3.329 vs the digital baseline 3.318. That is a 0.011 bpc gap (0.35%), i.e.
+quality-matched within noise, at ~28% activity. Meanwhile the spiking-STATE control on the
+same task with the same parameter count cannot get below 0.667 activity AND is 0.29 bpc worse
+(3.606). So: state-in-spikes is stuck dense and pays quality; state-in-analog goes to 28%
+activity for free. This is exactly the claim the direction was built to test.
+
+The tradeoff is smooth and cheap: activity 0.72 -> 0.28 (2.6x less communication) costs
+0.15 bpc. No collapse, no cliff, no target-rate penalty needed -- theta alone is the knob.
+Contrast with the earlier spiking char-LM result, where a strong lam=1.0 penalty could only
+move firing 0.63 -> 0.52. The knob works here because it gates COMMUNICATION, not memory.
+
+Why rate_state stays ~0.99 and why that is FINE (and is the whole point): the analog state is
+a continuous sub-threshold variable, so it is dense by construction -- but a dense analog state
+costs nothing to "carry" on analog/CIM hardware, since no spike is needed to represent it.
+In spikestate, dense state == dense spikes == dense energy. The bound rho >= H_b^-1(log2 M / H)
+constrains the SPIKE-CARRIED state and therefore simply does not apply to the analog variant.
+The sweep is the empirical demonstration of that scope limit.
+
+### Caveats that still stand (unchanged, do not drop)
+- n=1 seed, one task, one width. Needs seeds 1,2 before this is a 3-seed claim. NEXT PRIORITY.
+- The ENERGY PROXY still ranks spikestate best (159k vs analog 494k pJ/token) because analog
+  pays MAC-priced W_in and W_out and only gets event pricing on W_mix. The activity/quality
+  result above is the real finding; the pJ column is NOT yet an analog win and must not be
+  presented as one. Fixing it means moving more of the datapath onto events/CIM, which is a
+  design change, not a rerun.
+- Absolute quality is low for all runs (6 epochs; ANN reference bpc 2.62). Quality-matching at
+  bpc 3.3 is a weaker statement than quality-matching at bpc 2.6 would be.
+- theta=1.0 with rail=4.0 means events fire on ~1/4-rail state changes; worth checking the
+  interaction with rail/bits rather than treating theta as independent.
