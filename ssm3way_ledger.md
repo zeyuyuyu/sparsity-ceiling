@@ -1047,3 +1047,75 @@ Matching on *emitted* rate matches communication, not state activity: analog's `
 match is that a dense analog state costs no spikes to maintain — but it does cost an analog
 storage element and its converter per unit, which the pJ proxy does not price. So "matched rate"
 means matched *wire traffic*, and that should be said explicitly rather than implied.
+
+## 2026-07-30 ~20:45Z — REGULARIZATION CONTROL for the char-LM headline: LAUNCHED (pre-registered)
+
+The char-LM headline as of `a134f05` is that the analog-state SSM **beats** a matched
+digital baseline by **0.149 ± 0.014 bpc** (3 seeds) while emitting on 61% of steps and
+using 1.60× less proxy energy. The ledger already carries the caveat that the likely
+mechanism is **regularization, not superior computation** — but it was never tested.
+This row tests it. It is the one control a reviewer will demand, and it is the last
+open data question before writeup.
+
+**Why the caveat is credible enough to need a control.** The analog state carries
+additive noise (σ=0.02), 6-bit quantization over ±4 rails, and send-on-delta
+suppression of small updates, on a 173,596-param model at a 6-epoch schedule. The
+digital baseline has *no* regularization: no noise, no quantization, no weight decay,
+no dropout. In the vision PoC, sparsity *raised* accuracy for exactly this reason. So
+"analog beats digital" may just be "a regularized model beats an unregularized one".
+
+**Code changes (both behavior-preserving at their defaults; verified by re-rendering
+the existing char-LM table byte-identically before launch).**
+- `ssm3way.py`: the state degradation is factored out of `_analog` into `_degrade(h,
+  sigma, bits)`, and the **digital** variant can now take it via `--dig_noise` /
+  `--dig_bits`; plus `--wd` for Adam weight decay. `_analog` is now a thin call to
+  `_degrade` with the analog config, so variants 2–4 are bit-identical to before.
+  Defaults are all 0 ⇒ every previously-run cell is unaffected. The control config is
+  recorded per-run as `dig_reg` in the output JSON.
+- `agg_charlm.py`: **latent-bug fix, found before it could corrupt anything.** The
+  aggregator grouped cells by `(variant, theta)` only. The new cells are
+  `variant=digital, theta=None` with non-zero `dig_reg`, so they would have landed on
+  the *same key* as the unregularized digital baseline and silently overwritten it
+  seed-by-seed — corrupting the paired reference and therefore **every** `paired dbpc`
+  in the char-LM table. Now the regularization config joins the group key and the
+  paired reference is pinned to the unregularized digital cell. (Same class of bug as
+  the budget-pooling one already fixed in `agg_copy.py`; worth noting that this
+  aggregator family has now produced the same silent-pooling failure twice.)
+
+**Row = 12 cells, 4 arms × seeds {0,1,2}**, all `variant=digital`, char-LM, at the
+**identical** budget to the existing row (6 ep, 1.4M chars, lam=0, H=256) so they drop
+straight into that table. Driver `run_digreg.sh <gpu>`, same lock-dir work queue as
+`run_shrinkH.sh` (atomic-mkdir claim, skips any cell whose out JSON exists, workers
+addable on any GPU). Outputs `ssm3way_runs/digital_charlm_s<seed>_reg_<arm>.json`,
+markers `copy_logs/digreg.log`, logs `digreg_logs/`. All 8 A800s verified idle (0
+compute apps, no `ssm3way.py` process) before launch; 8 workers claimed 8 distinct
+cells. ~15 min/cell ⇒ ~30 min wall for 12 cells.
+
+The arms are a **decomposition**, not a sweep:
+| arm | flags | question it answers |
+|---|---|---|
+| `n0.02_b6` | `--dig_noise 0.02 --dig_bits 6` | the **entire** analog state degradation *without* the send-on-delta gating — separates "lossy state as regularizer" from "event gating". The key arm. |
+| `n0.02` | `--dig_noise 0.02` | is the quantization doing anything, or is it all just noise? |
+| `n0.05` | `--dig_noise 0.05` | dose-response — if more noise keeps helping, the baseline was simply under-regularized. |
+| `wd1e-4` | `--wd 1e-4` | a conventional tuned baseline, i.e. what a reviewer means by "did you try regularizing it at all". |
+
+**PRE-REGISTERED READINGS (written before any cell landed, so they cannot be fitted
+after the fact):**
+- **(A) — the likely outcome.** The full arm `n0.02_b6` recovers most of the 0.149 bpc
+  ⇒ the char-LM win is a **regularization effect**. The honest claim becomes *"the
+  analog datapath is not a quality tax, and its state noise happens to regularize a
+  small model at a short schedule"*. The **energy** story survives intact (equal-or-
+  better quality at 1.60× lower proxy energy and 61% emission), but *"analog computes
+  better"* dies and must be struck from the headline.
+- **(B)** None of the four arms closes the gap ⇒ the win is **not** explainable as
+  state-degradation-as-regularizer, and the send-on-delta gating itself is contributing.
+  This would strengthen the headline considerably.
+- **(C)** An arm **overshoots** (regularized digital beats analog) ⇒ the honest headline
+  is that a properly regularized digital baseline wins on quality and analog's only
+  remaining claim is **energy at matched quality**. Must be reported as such.
+
+Note that (A) and (C) both *narrow* the headline and (A) is the stated prior — this row
+is run expecting to weaken its own project's best result, which is the point of it.
+Whatever lands goes in the paper either way.
+
+**No results yet.**

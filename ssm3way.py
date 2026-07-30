@@ -65,6 +65,11 @@ def get_args():
     p.add_argument("--chars", type=int, default=1_400_000)
     p.add_argument("--copy_k", type=int, default=16, help="copy-task token alphabet")
     p.add_argument("--copy_n", type=int, default=20000, help="copy-task sequences")
+    p.add_argument("--dig_noise", type=float, default=0.0,
+                   help="regularization control: state noise on the DIGITAL variant")
+    p.add_argument("--dig_bits", type=int, default=0,
+                   help="regularization control: state quantization on DIGITAL")
+    p.add_argument("--wd", type=float, default=0.0, help="Adam weight decay")
     p.add_argument("--out", required=True)
     return p.parse_args()
 
@@ -112,16 +117,20 @@ class SSM(nn.Module):
     def decay(self):
         return torch.exp(-torch.exp(self.log_dt))          # diagonal a in (0,1)
 
+    def _degrade(self, h, sigma, bits):
+        """rails + additive noise + finite precision (straight-through)."""
+        rail = self.cfg.rail
+        h = h.clamp(-rail, rail)
+        if self.training and sigma > 0:
+            h = h + torch.randn_like(h) * sigma
+        if bits > 0:
+            q = 2 * rail / (2 ** bits)
+            h = h + (torch.round(h / q) * q - h).detach()
+        return h
+
     def _analog(self, h):
         """sub-threshold analog state: rails, additive noise, finite precision."""
-        c = self.cfg
-        h = h.clamp(-c.rail, c.rail)
-        if self.training and c.noise > 0:
-            h = h + torch.randn_like(h) * c.noise
-        if c.bits > 0:
-            q = 2 * c.rail / (2 ** c.bits)
-            h = h + (torch.round(h / q) * q - h).detach()   # straight-through
-        return h
+        return self._degrade(h, self.cfg.noise, self.cfg.bits)
 
     def forward(self, x):
         B, L = x.shape
@@ -142,6 +151,9 @@ class SSM(nn.Module):
             h = a * h + self.W_in(e)
             if self.variant == "analog":
                 h = self._analog(h)
+            elif self.variant == "digital" and (self.cfg.dig_noise > 0
+                                                or self.cfg.dig_bits > 0):
+                h = self._degrade(h, self.cfg.dig_noise, self.cfg.dig_bits)
             s_act.append((h.abs() > 1e-6).float().mean())
             if self.variant == "digital":
                 z = torch.nn.functional.gelu(h)
@@ -214,7 +226,7 @@ def main():
     nparam = sum(p.numel() for p in net.parameters())
     print(f"[{a.variant}/{a.task}] dev {dev} vocab {V} params {nparam:,} "
           f"train {tr[0].size(0)} seqs", flush=True)
-    opt = torch.optim.Adam(net.parameters(), lr=a.lr)
+    opt = torch.optim.Adam(net.parameters(), lr=a.lr, weight_decay=a.wd)
     ce = nn.CrossEntropyLoss(reduction="none")
     xt, yt, mt = tr
     for ep in range(a.epochs):
@@ -237,6 +249,7 @@ def main():
            "lam": a.lam, "target": a.target if a.lam > 0 else None,
            "analog": {"theta": a.theta, "noise": a.noise, "bits": a.bits, "rail": a.rail}
            if a.variant == "analog" else None,
+           "dig_reg": {"dig_noise": a.dig_noise, "dig_bits": a.dig_bits, "wd": a.wd},
            "bpc": round(ev["bpc"], 4), "ppl": round(ev["ppl"], 3),
            "acc": round(ev["acc"], 4),
            "rate_emitted": round(ev["rate_emitted"], 4),
