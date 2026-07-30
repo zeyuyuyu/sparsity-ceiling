@@ -423,3 +423,55 @@ mentions `ssm3way_runs`. Markers in `copy_logs/row_ep30.log`. Rough cost ~40 GPU
 **What the row now tests:** (i) whether the analog↔digital gap **widens with M** (prediction: yes, if the
 lossy-memory reading is right), and (ii) spikestate's activity-vs-M — the actual M-dependence test of the
 firing-floor bound, which the old 6-epoch row could not perform because every variant sat at chance.
+
+### 2026-07-30 15:40Z — copy row ep30: the M=16 column is COMPLETE at 3 seeds, and it INVERTS the char-LM ranking
+
+Row still running (8 jobs alive, 20/36 `_ep30` cells on disk; M=32 has digital at 2 seeds, M=64 not
+started). The M=16 column is done for all four variants at seeds 0/1/2, so it can be read now.
+Copy, K=16 alphabet, chance acc 0.0625 / bpc 4.000. Budget ep30 / copy_n 80k, analog theta=0.2.
+Table regenerable with `python agg_copy.py 30`.
+
+| variant | acc (3 seeds) | bpc | rate_emitted | rate_state | pJ/tok (cons) | margin kept |
+|---|---|---|---|---|---|---|
+| `digital`    | 0.6302 +- 0.0106 | 1.4201 +- 0.0343 | 1.0000 | 1.0000 | 398029 | 1.00 |
+| `spikeout`   | 0.5833 +- 0.0118 | 1.5446 +- 0.0708 | 0.4469 +- 0.0261 | 1.0000 +- 0.0000 | 122920 | **0.92** |
+| `analog th=0.2` | 0.3605 +- 0.0505 | 2.7769 +- 0.2261 | 0.5011 +- 0.0347 | 0.9717 | 246674 | 0.53 |
+| `spikestate` | 0.1071 +- 0.0164 | 3.9292 +- 0.0369 | 0.4960 +- 0.0106 | 0.4960 +- 0.0106 | 107744 | 0.08 |
+
+("margin kept" = fraction of digital's above-chance accuracy margin the variant retains; the right
+metric here because absolute accuracies are low. Paired per-seed deltas vs digital: spikeout
+dbpc +0.124 +- 0.043, analog +1.357 +- 0.253, spikestate +2.509 +- 0.060, all n=3.)
+
+**THE RESULT: the variant ranking is task-conditional and flips.** On char-LM (3 seeds) the order
+was analog (+0.017 bpc) << spikestate (+0.278) << spikeout (+1.055) — spikeout WORST. On copy at
+M=16 (3 seeds) it is spikeout (+0.124) << analog (+1.357) << spikestate (+2.509) — spikeout BEST,
+by a wide and well-powered margin (seed sd 0.012 on acc). This is no longer an n=1 curiosity from
+the old 6-epoch row; it replicates at 3 seeds at a budget where the baseline is 10x above chance.
+
+**Mechanistic reading, and it is consistent with the earlier one.** Copy needs precise retention of
+M specific symbols. The two variants that keep the recurrent state *exact* (digital: continuous;
+spikeout: continuous state, LIF only on the output) are the two that do well — spikeout's
+`rate_state` is again exactly **1.0000 +- 0.0000**, so it pays nothing in state fidelity and buys
+its 3.2x energy cut purely on the output path. The two variants that make the state *lossy* pay for
+it: analog (noise sigma=0.02, 6-bit over +-4 rails, send-on-delta suppression) keeps 0.53 of the
+margin, and spikestate (state quantized to 1 bit) keeps 0.08 and is barely above chance. So the
+axis that predicts copy performance is **state fidelity**, not sparsity: at nearly identical
+emitted rates (0.45 / 0.50 / 0.50) the three non-digital variants span 0.92 -> 0.53 -> 0.08.
+
+**What this does to the headline.** It does not touch the char-LM result (unchanged, 3 seeds), but
+it forces the paper/memo to state the finding as a *dichotomy over workloads*, not a ranking of
+variants: for statistical sequence tasks the analog state is the cheap route (27% activity, 0.5%
+quality cost) and output-spiking is the expensive one; for precise-recall tasks it is exactly
+reversed, and output-spiking is the only sparsification that survives. Neither variant dominates.
+That is a more interesting claim than "analog wins", and it is now the better-powered one.
+
+**Energy footnote (honest):** on copy at M=16 spikeout is also the best quality-per-pJ point by a
+distance — 0.92 margin kept at 122.9k pJ/tok vs digital's 398.0k, a 3.2x cut. Analog is *worse*
+than spikeout on both axes here (0.53 margin at 246.7k pJ), for the same datapath reason logged
+earlier: analog only gets event pricing on W_mix and still pays MAC-priced W_in/W_out.
+
+**Still open, unchanged:** the firing-floor bound's M-dependence. spikestate emits 0.496 at M=16 —
+this time genuinely above chance (acc 0.107 vs 0.0625), unlike the 6-epoch row where it stored
+nothing, so the M=32 and M=64 columns will for the first time be a real test of whether spikestate
+activity rises with M. Do not read M-dependence off the single M=16 point. Weak prior signal only:
+analog margin kept 0.53 at M=16 (n=3) vs 0.31 at M=32 (n=1), consistent with the gap widening.
