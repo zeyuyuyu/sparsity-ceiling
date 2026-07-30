@@ -700,3 +700,53 @@ H=256/128/96/64 (measured H=256 = 0.4960+-0.0106); criterion (iii) refutation = 
 or falling while nets still learn; criterion (iv) most-likely = spikestate retention dies
 before the floor binds -> verdict "not empirically testable with this architecture", a
 reportable negative. Nothing about the gate passing changes those criteria.
+
+---
+
+### 2026-07-30 ~18:40Z — SHRINK-H BOUND ROW: the H=64 binding cell has both arms in, and the measured activity is BELOW the predicted floor — which, read correctly, turns the bound into a *capacity certificate* rather than a firing-rate prediction
+
+Cells: copy L=33 (M=16, K=16), ep30/n80k, H=64 (10,513 params). Predicted floor under the
+corrected `M·log₂K/H` reading: **0.500** (this is the one binding cell of the row).
+
+| variant | n | acc | bpc | state activity ρ | margin kept | pJ/token |
+|---|---|---|---|---|---|---|
+| digital    | 3 | 0.5600 ± 0.0095 | 1.8275 ± 0.0563 | 1.000 | 1.00 | 42,982 |
+| spikestate | 2 | 0.1614 (0.1576/0.1651) | 3.6499 (3.6485/3.6512) | **0.2562** (0.2786/0.2338) | **0.20** | 20,332 |
+
+(chance acc 0.0625, chance bpc 4.000; seed 2 of spikestate still training)
+
+**Against the pre-registered criteria:**
+- (i) validity gate — **PASSES** at 3 seeds now, not 1: digital keeps 0.560 ± 0.010 at H=64,
+  i.e. 89% of its H=256 accuracy (0.6302) with 8× fewer params. The task is not width-limited.
+- (ii) confirmation (activity at/above floor AND rising as H shrinks) — **NOT MET.** The two
+  points now on the trend line go the *wrong* way: ρ = 0.496 ± 0.011 at H=256 (floor 0.0026)
+  → ρ = 0.256 at H=64 (floor 0.500). Activity **falls** as H shrinks, and at H=64 it lands
+  **below** the predicted floor.
+- (iii)/(iv) — the sub-floor measurement is *not* a refutation, because the bound's precondition
+  is a net that actually retains M·log₂K bits, and this one does not: margin kept 0.20.
+
+**The reading that makes the sub-floor number informative (and is the actual result of this row).**
+A bound violation is impossible for a net that carries the required information, so measuring
+ρ < floor is direct evidence the state is *not* carrying it. Inverting the bound gives a usable
+capacity certificate: at ρ = 0.2562 and H = 64 the spiking state can encode at most
+`H·H_b(ρ) = 64 × 0.8211 = 52.6 bits`, against the `M·log₂K = 64 bits` copy at M=16 demands —
+an **11-bit deficit, i.e. capacity for ~13 of the 16 symbols.** The bound therefore *predicts
+failure at this width*, and the net does fail (acc 0.161 vs digital 0.560, margin kept 0.20).
+This is the first cell in the whole project where the bound makes a checkable prediction that
+the data bears out — but note it is a prediction of **incapacity**, not of a firing floor.
+
+**Honest status of the firing-floor claim: still UNCONFIRMED, and now under real pressure.**
+Across H = 256 → 64 the LIF state's activity sits near 0.25–0.50 regardless of a floor that
+moves 190× (0.0026 → 0.500). That is the signature of an **optimization/architecture artifact
+of the LIF state**, not of an information-theoretic floor — exactly criterion (iii)'s shape.
+The H=96 (floor 0.174) and H=128 (floor 0.042) cells now running are what discriminate: if ρ
+tracks ~0.25–0.5 at those widths too, the flat-artifact reading wins and the paper should say
+so plainly.
+
+**Do not write "the bound is confirmed" anywhere.** The defensible sentence today is: *the
+firing-floor bound is only usable in its contrapositive — as a certificate that a given (ρ, H)
+cannot hold the task's memory — and the measured LIF activity does not track the predicted
+floor as width varies.*
+
+Energy footnote, unchanged in direction: spikestate is the cheaper cell (20.3k vs 43.0k pJ/token)
+and buys 0.20 of the margin — the same "cheap and useless" pattern as the M=32 floor control.
