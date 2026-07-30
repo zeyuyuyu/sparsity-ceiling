@@ -750,3 +750,37 @@ floor as width varies.*
 
 Energy footnote, unchanged in direction: spikestate is the cheaper cell (20.3k vs 43.0k pJ/token)
 and buys 0.20 of the margin — the same "cheap and useless" pattern as the M=32 floor control.
+
+## 2026-07-30 ~19:35Z — shrink-H row: H=64 (the binding cell) complete at 3 seeds, H=96 partially in. The bound fails its pre-registered test in a *stronger* way than "flat", AND the contrapositive reading from the last tick must be RETRACTED as non-diagnostic.
+
+Setup: copy, L=33 (M=16, K=16 => 64 bits to retain), ep30 / copy_n 80000, chance acc 0.0625 / bpc 4.000.
+Predicted floors under the corrected `M*log2(K)/H` reading: H=64 -> 0.500 (binding), H=96 -> 0.174, H=128 -> 0.042, H=256 -> 0.0026.
+
+| H | params | digital acc | digital bpc | spikestate acc | spikestate bpc | spikestate rho (state activity) | predicted floor | margin kept | n |
+|---|---|---|---|---|---|---|---|---|---|
+| 256 | 87,889 | 0.6302 +- 0.0106 | 1.4201 | 0.1071 +- 0.0164 | 3.9292 | **0.4960 +- 0.0106** | 0.0026 | 0.08 | 3/3 |
+| 128 | (running) | (running) | | (running) | | | 0.042 | | 0/0 |
+| 96 | 18,289 | 0.5869 +- 0.0078 | 1.6351 | 0.1634 | 3.6635 | **0.3522** | 0.174 | 0.19 | 2 / 1 |
+| 64 | 10,513 | 0.5600 +- 0.0095 | 1.8275 | 0.1619 +- 0.0039 | 3.6562 | **0.2496 +- 0.0252** | 0.500 | 0.20 | 3/3 |
+
+**Validity gate (pre-registered criterion (i)): PASSES at every measured H.** The digital reference still learns copy far above chance at all widths (0.560 / 0.587 / 0.630 vs chance 0.0625), and it does so with 8x fewer params at H=64. So copy at M=16 is not width-limited anywhere in H in [64,256], which is exactly what makes this a real bound test rather than a capacity-limited one.
+
+**Criterion (ii) is REFUTED, and not merely by flatness — the trend is ANTI-correlated.** Pre-registration required spikestate's state activity to *rise* as H shrinks (tracking floors 0.0026 -> 0.042 -> 0.174 -> 0.500). Measured rho instead *falls monotonically* across three widths: **0.4960 (H=256) -> 0.3522 (H=96) -> 0.2496 (H=64)**, while the predicted floor rises 190x. The two curves cross between H=96 and H=64. This is criterion (iii)'s shape in its strongest form: measured LIF state activity is set by the network's width/architecture, not by the task's information demand. **The ~0.25-0.50 activity is an optimization/architecture artifact, not an information-theoretic floor.**
+
+**RETRACTION of the previous tick's contrapositive claim.** The 2026-07-30 ~18:40Z entry said the bound "earns its keep in the contrapositive" because at H=64 the certificate `H*H_b(rho)` = 64 x 0.8211 = 52.6 bits < the 64 bits copy demands, and the net indeed fails. With H=96 now in, that reading does not survive:
+
+| H | rho | H*H_b(rho) = certified bits | demand M*log2K | verdict of certificate | actual spikestate acc |
+|---|---|---|---|---|---|
+| 256 | 0.4960 | 256.0 | 64 | 4.0x SURPLUS -> should succeed | 0.107 (fails) |
+| 96 | 0.3522 | 89.9 | 64 | 1.40x SURPLUS -> should succeed | 0.163 (fails) |
+| 64 | 0.2496 | 51.9 | 64 | 12-bit DEFICIT -> should fail | 0.162 (fails) |
+
+**spikestate accuracy is FLAT (0.107 / 0.163 / 0.162) across a 5x swing in certified capacity (52 -> 256 bits), and if anything is *worse* at the widest, most over-provisioned width.** So the H=64 "prediction of incapacity borne out" was a coincidence: the net fails identically at H=96 where the certificate says capacity is comfortably adequate. The certificate is therefore **necessary-but-not-sufficient and not diagnostic at this scale** — spikestate's failure on copy is a **trainability/optimization failure, not a capacity failure**, and the bound explains neither the failure nor the observed activity.
+
+**Honest verdict on the bound arm (this is now the reportable outcome, and it is a negative):** the firing-floor bound `rho >= H_b^-1(M*log2K / H)` is **not empirically validated by this architecture at this scale, in either its forward or its contrapositive form**. Forward: activity moves opposite to the floor across a 190x floor swing. Contrapositive: performance is invariant to a 5x capacity swing, so the deficit at H=64 predicts nothing the surplus at H=96 doesn't equally contradict. Never write "the bound is confirmed", and per this entry also do not write "the contrapositive earns its keep". Defensible sentence for the paper: *we could not construct a regime where the firing-floor bound binds on a net that still learns the task — measured LIF state activity is width-determined and anti-correlated with the predicted floor, and spiking-state failure on precise recall is an optimization failure that the bound does not explain.* The bound stays in the paper as **theory with a stated, tested scope limit**, not as a validated prediction.
+
+**What still stands, untouched by this negative:** the 3-seed char-LM headline (analog-state 0.266 activity at +0.017 bpc vs digital) and the copy workload dichotomy (state-fidelity ordering: continuous 0.92/0.46 > lossy-analog 0.53/0.31 > 1-bit 0.08/0.00 margin kept at M=16/32, at matched emitted rates). Those are empirical, do not depend on the bound, and are the paper's actual contribution. The bound arm's outcome is a scope-limit result.
+
+**Incidental:** spikestate acc *improves* slightly as H shrinks 256 -> 96 (0.107 -> 0.163), i.e. the 1-bit-state net is not helped by width on this task at all — further evidence the failure is not about capacity. Energy proxy at H=64: spikestate 20.3k vs digital 43.0k pJ/token, buying 0.20 of the margin (same "cheap and useless" pattern).
+
+**Row state at this tick:** 9/18 shrink-H cells on disk; the main ep30 copy row is **DONE** (43 cells, `COPY ROW EP30 DONE`), which freed GPUs 0/1/3 — three more workers added there, so all 8 A800s now run shrink-H and 17/18 cells are claimed. Only `spikestate_copy_L33_s2_H128_ep30` is unclaimed and will be taken by the first worker to free. The H=128 column (floor 0.042) and the two remaining H=96 spikestate seeds are the last data; per the anti-correlated trend above the expectation is rho in the 0.35-0.45 range at H=128, i.e. the trend continues and the verdict does not change.
