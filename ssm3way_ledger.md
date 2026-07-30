@@ -319,3 +319,17 @@ the full row. Do not report the current copy table as a bound test.
 None — charlm (3 seeds) stands as previously recorded. But the copy row does bound
 its generality: the analog-state advantage is demonstrated on char-LM at one theta,
 and did **not** reproduce on a second task under transferred hyperparameters.
+
+## Baseline-gate probe (2026-07-30 ~20:32 server-local): copy baseline was BUDGET-limited, not task-limited
+
+Question: is the digital copy baseline's 41% acc at L=33 (M=16, seed 0) a budget limit or a task limit at this model size (87,889 params)?
+
+| run | epochs | copy_n | acc | bpc |
+|---|---|---|---|---|
+| original row cell | 6 | 20,000 | 0.4108 | 2.4172 |
+| probeA | 30 | 20,000 | 0.5732 | 1.7283 |
+| probeB | 30 | 80,000 | 0.6388 | 1.3983 |
+
+(chance acc = 0.0625, chance bpc = 4.000; files `ssm3way_runs/digital_copy_L33_s0_probeA_ep30.json`, `..._probeB_ep30_n80k.json`)
+
+**Verdict: budget-limited.** Acc rises monotonically with both epochs (6→30: +0.16) and data (20k→80k: +0.066 more) and has not saturated. Not solved (0.64 << 1.0), but the baseline now sits 10× above chance — enough dynamic range to compare variants. **Consequence: the INCONCLUSIVE copy row verdict stands for the OLD (6-epoch) table, and a rerun at ep30/n80k is justified.** Prerequisite before the rerun: per-task θ calibration for analog at this budget (charlm θ=1.0 is known to collapse analog on copy; working range at M=32 was θ≈0.1–0.3 at the old budget, must be re-checked at ep30/n80k). Use new `--out` suffixes (e.g. `_ep30`) so the idempotent driver does not skip.
