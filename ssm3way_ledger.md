@@ -522,3 +522,59 @@ M per variant, (b) activity vs M with the bound curve overlaid and shaded. It de
 the theta-calibration cell against the row cell, excludes non-theta=0.2 analog cells, and
 annotates any cell with n<3 rather than silently averaging. Regenerate with
 `python plot_ssm3way.py 30` -> `fig_ssm3way.pdf`.
+
+## 2026-07-30 ~16:38Z (server local) — ep30 copy row: the M=32 column is COMPLETE at 3 seeds for digital / spikeout / analog, and the prediction that the gap WIDENS with M is CONFIRMED for both non-exact-state variants
+
+Row still running: 20/36 main cells, 8 jobs alive (3× spikestate L=65 finishing the M=32
+column, 3× digital + 2× spikeout at L=129 starting the M=64 column). Numbers below are from
+`agg_copy.py 30`, all paired per-seed against the digital cell at the same (L, seed).
+Copy, K=16, chance acc 0.0625 / bpc 4.000.
+
+| M  | variant | n | acc | bpc | emitted | rate_state | margin kept |
+|----|---------|---|-----|-----|---------|------------|-------------|
+| 16 | digital | 3 | 0.6302 ± 0.0106 | 1.4201 | 1.000 | 1.000 | 1.00 |
+| 16 | spikeout | 3 | 0.5833 ± 0.0118 | 1.5446 | 0.447 | 1.0000 ± 0.0000 | **0.92** |
+| 16 | analog θ=0.2 | 3 | 0.3605 ± 0.0505 | 2.7769 | 0.501 | 0.972 | **0.53** |
+| 16 | spikestate | 3 | 0.1071 ± 0.0164 | 3.9292 | 0.496 | 0.496 | **0.08** |
+| 32 | digital | 3 | 0.3150 ± 0.0031 | 2.8928 ± 0.0127 | 1.000 | 1.000 | 1.00 |
+| 32 | spikeout | 3 | 0.1796 ± 0.0009 | 3.6045 ± 0.0025 | 0.485 | 1.0000 ± 0.0000 | **0.46** |
+| 32 | analog θ=0.2 | 3 | 0.1419 ± 0.0003 | 3.7877 ± 0.0019 | 0.449 | 0.964 | **0.31** |
+| 32 | spikestate | — | (running) | | | | |
+
+Paired Δbpc vs digital at M=32 (n=3): spikeout **+0.7117 ± 0.0113**, analog θ=0.2
+**+0.8950 ± 0.0108**. At M=16 those were +0.1245 ± 0.0426 and +1.3569 ± 0.2530.
+
+**FINDING 1 — the gap widens with memory load, for BOTH non-exact-state variants.**
+Margin kept falls 0.92 → 0.46 for spikeout and 0.53 → 0.31 for analog when M goes 16 → 32.
+This is the prediction registered before the column landed (lossy state should cost more as
+the task demands retaining more), and it holds. Note it is *not* analog-specific: spikeout's
+margin drops by more in absolute terms (−0.46 vs −0.22), i.e. even a fully continuous state
+loses ground once the *output* is spiked and the sequence to be recalled gets longer. The
+seed sd at M=32 is tiny (≤0.003 acc for every variant), so the widening is far outside noise.
+
+**FINDING 2 — the state-fidelity ordering survives the harder column.** At M=32, at nearly
+matched emitted rates (0.485 vs 0.449), spikeout keeps 0.46 and analog 0.31 — same order as
+M=16, and again ordered by how exact the recurrent state is rather than by how sparse the
+communication is. The spikestate cell that would complete the ordering is still training.
+
+**FINDING 3 (honest, and it cuts against a "sparser is the cost" reading) — analog does not
+buy its quality loss back with communication.** Its emitted rate actually *falls* slightly
+from M=16 to M=32 (0.501 → 0.449) at the same θ=0.2 while its margin kept drops from 0.53 to
+0.31. So the extra loss is not the net choosing to send less; the fixed send-on-delta
+threshold simply prices a harder task worse. Any energy/quality curve for the analog route
+must therefore be drawn per memory load, not once.
+
+**What this does NOT show.** Nothing here tests the firing-floor bound. Under the corrected
+reading (`M·log₂K` bits, floors 0.042 / 0.110 / 0.500 at M = 16 / 32 / 64 for H=256), the
+M=16 and M=32 columns are non-binding by 4–12×, exactly as pre-registered. Only the M=64
+column, now training, is binding — and the retention caveat stands: spikestate keeps 0.08 of
+the margin at M=16, so a satisfied bound at M=64 will most likely be *uninformative*. The
+recommended real test remains shrinking H (H=64 at M=16 → floor 0.50 on a learnable task).
+
+**Effect on the paper claim: none to the char-LM headline; the workload dichotomy gets
+stronger.** char-LM (3 seeds): analog +0.017 bpc ≪ spikestate +0.278 ≪ spikeout +1.055.
+Copy (3 seeds, both M): spikeout ≪ analog ≪ spikestate, and the ranking is now shown to be
+stable across two memory loads rather than at a single point. Energy footnote unchanged and
+still unfavourable to analog: at M=32, spikeout 125.2k pJ/tok at 0.46 margin vs analog 231.0k
+at 0.31 — analog is worse on both axes on this task, for the datapath reason already logged
+(only W_mix gets event pricing).
