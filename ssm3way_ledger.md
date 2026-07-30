@@ -333,3 +333,48 @@ Question: is the digital copy baseline's 41% acc at L=33 (M=16, seed 0) a budget
 (chance acc = 0.0625, chance bpc = 4.000; files `ssm3way_runs/digital_copy_L33_s0_probeA_ep30.json`, `..._probeB_ep30_n80k.json`)
 
 **Verdict: budget-limited.** Acc rises monotonically with both epochs (6→30: +0.16) and data (20k→80k: +0.066 more) and has not saturated. Not solved (0.64 << 1.0), but the baseline now sits 10× above chance — enough dynamic range to compare variants. **Consequence: the INCONCLUSIVE copy row verdict stands for the OLD (6-epoch) table, and a rerun at ep30/n80k is justified.** Prerequisite before the rerun: per-task θ calibration for analog at this budget (charlm θ=1.0 is known to collapse analog on copy; working range at M=32 was θ≈0.1–0.3 at the old budget, must be re-checked at ep30/n80k). Use new `--out` suffixes (e.g. `_ep30`) so the idempotent driver does not skip.
+
+
+## θ calibration at the new budget (copy, L=65 / M=32, seed 0, ep30 + copy_n 80k) — PARTIAL (4/5 θ in)
+
+Recorded 2026-07-30 ~22:10 server-local. Driver `run_calib_ep30.sh`. Chance: acc 0.0625, bpc 4.000.
+Still in flight at time of writing: analog θ=0.5, and the digital reference at L=65 (same budget).
+
+| variant | θ | acc | bpc | rate_emitted | rate_state |
+|---|---|---|---|---|---|
+| analog | 0.05 | 0.1568 | 3.717 | 0.5989 | 0.9549 |
+| analog | 0.10 | 0.1568 | 3.717 | 0.5989 | 0.9549 |
+| analog | 0.20 | 0.1420 | 3.786 | 0.4547 | 0.9646 |
+| analog | 0.30 | 0.1273 | 3.863 | 0.2679 | 0.9502 |
+| analog | 0.50 | (running) | | | |
+| digital | -- | (running, L=65) | | | 1.0 |
+
+Reference from the earlier budget probe, at a *different* length: digital L=33 (M=16) at ep30/n80k
+reached acc 0.5732, bpc 1.7283. Not comparable to the rows above; the L=65 digital cell is the
+apples-to-apples one and it is still training.
+
+**Finding 1 — θ=0.05 and θ=0.10 are bit-identical.** Every metric agrees to all printed digits, not merely
+approximately. This is not a sweep bug; it is the analog datapath's own resolution floor. The state is
+quantized to `bits=6` over rails +/-4, so one quantization step is 8 / 2^6 = **0.125**. A send-on-delta
+threshold below one LSB cannot discriminate anything, so every θ under 0.125 collapses onto the same
+behaviour: the ADC step, not θ, sets the minimum achievable event rate. The usable θ range on this datapath
+therefore starts at about 0.125, and "smaller θ buys more accuracy" saturates there
+(acc 0.157 at emitted 0.599). Consequence for the memo and the paper: θ and bit-depth are **not
+independent knobs**, so any θ claim must state `bits` alongside it. If a finer event rate is genuinely
+wanted, the lever is more bits, not a smaller threshold.
+
+**Finding 2 — a monotone accuracy/activity tradeoff that is real at this budget.** Accuracy falls
+0.157 -> 0.142 -> 0.127 as the emitted rate falls 0.599 -> 0.455 -> 0.268, and all three points sit above
+chance (0.0625). At the old 6-epoch budget analog sat exactly at chance for every θ, so the ep30/n80k
+budget did buy analog a working regime. This is independent confirmation of the digital probe's verdict
+that the old copy row was budget-limited rather than task-limited.
+
+**Finding 3 — honest negative on absolute quality.** Analog's best point here is acc 0.157 at M=32, only
+about 2.5x chance, whereas digital at the *easier* M=16 reached 0.573. Until the L=65 digital reference
+lands there is no matched comparison, so do **not** claim analog is quality-matched on copy. The char-LM
+result stands on its own evidence; copy remains an open second-task replication, not yet a confirmation.
+
+**θ selection (provisional, pending θ=0.5 and the digital L=65 reference):** θ=0.2 is the pick for the full
+row. It holds accuracy within 10% of the sub-LSB best (0.142 vs 0.157) at a clearly-sub-1.0 event rate
+(0.455), and unlike θ=0.05/0.10 it sits above the 6-bit LSB, so the threshold is actually the operative
+knob rather than an alias for the quantizer.
