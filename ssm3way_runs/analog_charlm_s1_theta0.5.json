@@ -1,0 +1,33 @@
+{
+  "variant": "analog",
+  "task": "charlm",
+  "seed": 1,
+  "params": 173596,
+  "vocab": 284,
+  "E": 64,
+  "H": 256,
+  "L": 128,
+  "epochs": 6,
+  "lr": 0.002,
+  "lam": 0.0,
+  "target": null,
+  "analog": {
+    "theta": 0.5,
+    "noise": 0.02,
+    "bits": 6,
+    "rail": 4.0
+  },
+  "bpc": 3.2315,
+  "ppl": 9.392,
+  "acc": 0.3712,
+  "rate_emitted": 0.4533,
+  "rate_state": 0.9928,
+  "energy_pJ_per_token": 436774.795,
+  "energy_pJ_per_token_conservative": 546704.242,
+  "energy_terms_pJ": {
+    "W_in_MAC": 75366.4,
+    "state_analog_AC": 230.4,
+    "W_mix_event_at_rz": 26739.5951,
+    "W_out_MAC": 334438.4
+  }
+}

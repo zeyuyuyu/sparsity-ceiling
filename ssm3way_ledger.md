@@ -952,3 +952,98 @@ result counts either way: the honest prior is that it is seed noise (digital's o
 0.022 bpc, and the θ=1.0 column was consistently *worse* than digital across all 3 seeds).
 
 Markers in `copy_logs/charlm_theta.log`, per-cell logs in `charlm_theta_logs/`. No results yet.
+
+## 2026-07-30 ~20:35Z — char-LM MATCHED-EMITTED-RATE row COMPLETE (10 cells, no failures). The pre-registered CONFIRMATION branch holds at BOTH matched points, and the "second question" resolves POSITIVE: analog beats digital at 3 seeds.
+
+The row launched 20 minutes earlier finished inside the same tick (char-LM cells are ~6 epochs
+on 1.4M chars). 10/10 cells trained, 0 failed, 8 workers reached `WORKER GPU<n> DONE`.
+Regenerate with `python agg_charlm.py`.
+
+### Full char-LM table, 3 seeds per cell, identical budget (6 ep, 1.4M chars, lam=0, 173,596 params)
+`paired Δbpc` = per-seed difference vs the digital baseline at the same seed (negative = BETTER
+than digital). Comparator rows are the pre-existing 3-seed cells, unchanged.
+
+| variant | θ | n | bpc | emit | rate_state | paired Δbpc | pJ/token |
+|---|---|---|---|---|---|---|---|
+| digital | — | 3 | 3.3429±0.0221 | 1.0000 | 1.0000 | ±0 | 712,448 |
+| analog | 0.15 | 3 | 3.1936±0.0078 | 0.6122 | 0.9940 | **−0.1493±0.0144** | 446,143 |
+| analog | 0.25 | 3 | 3.2092±0.0232 | 0.5500 | 0.9938 | −0.1337±0.0343 | 442,473 |
+| analog | 0.50 | 3 | 3.2344±0.0026 | 0.4715 | 0.9930 | −0.1085±0.0236 | 437,848 |
+| analog | 0.75 | 3 | 3.2932±0.0109 | 0.3798 | 0.9921 | **−0.0497±0.0199** | 432,440 |
+| analog | 1.00 | 3 | 3.3595±0.0273 | 0.2664 | 0.9919 | +0.0166±0.0068 | 425,745 |
+| spikestate | — | 3 | 3.6205±0.0130 | **0.6453** | 0.6453 | +0.2776±0.0091 | 156,835 |
+| spikeout | — | 3 | 4.3978±0.0292 | **0.3691** | 1.0000 | +1.0548±0.0318 | 432,752 |
+
+The θ=1.0 cell reproduces the previously recorded +0.0166 exactly, so the new cells are
+consistent with the existing row rather than a differently-configured re-run.
+
+### Matched-rate comparison — the point of the row. CONFIRMED at both operating points.
+- **Against spikestate** (emits 0.6453): analog θ=0.15 emits **0.6122** — slightly *less* — and
+  scores paired Δbpc **−0.149 vs spikestate's +0.278**, a **0.427 bpc gap in analog's favour at
+  matched communication**. Pre-registered confirmation required only "well below +0.278"; the
+  result clears it by beating the *digital* baseline outright.
+- **Against spikeout** (emits 0.3691): analog θ=0.75 emits **0.3798** and scores **−0.050 vs
+  spikeout's +1.055**, a **1.10 bpc gap at matched communication**.
+- So analog's char-LM advantage is **not an operating-point artifact**. The refutation branch is
+  dead: forcing analog up to spikestate's emission does not erode its advantage, it *increases*
+  it (Δbpc improves monotonically as θ falls: +0.017 → −0.050 → −0.109 → −0.134 → −0.149).
+
+### The "second question" resolves POSITIVE and upgrades the char-LM headline
+The seed-0 θ=0.1 run that beat digital was previously dismissed as non-generalizing. **It
+generalizes.** At θ=0.15, all three seeds are negative (−0.1327, −0.1577, −0.1575) — analog
+beats digital by **0.149 bpc (4.5%)** while emitting on only **61%** of steps and using **1.60×
+less** energy by the pJ proxy (446k vs 712k). Analog beats digital at every θ ≤ 0.75, i.e. down
+to ~38% emission, and only reaches parity at θ=1.0 / 27% emission.
+
+**The old wording "quality-matched to within 0.5%" was an artifact of reading the θ=1.0 column
+only** — that column is the *sparsest* point, not the representative one. Corrected headline:
+*on char-LM the analog-state SSM beats a matched digital baseline by 0.149±0.014 bpc while
+communicating on 61% of steps (3 seeds, all negative), and remains better than digital down to
+38% emission.*
+
+**Honest mechanism and caveat.** The likely cause is **regularization, not superior
+computation**: the analog state's injected noise (σ=0.02), 6-bit quantization and send-on-delta
+suppression together act as a stochastic regularizer on a small (173k-param, 6-epoch) model —
+the same effect already seen in the vision PoC, where target-rate sparsity *raised* accuracy.
+This must be stated. The advantage may well shrink or vanish with a longer schedule, a larger
+model, or a properly regularized digital baseline, and **the digital baseline here is not
+regularization-tuned**. Do not claim analog computation is intrinsically better than digital;
+claim that at matched capacity and budget the analog datapath is not a quality tax on char-LM,
+and at this scale is a small quality *benefit*.
+
+### The task-conditional inversion survives matched rates — and sharpens the mechanism
+Both tasks now have a matched-emitted-rate reading, so neither ordering can be dismissed as an
+operating-point artifact:
+
+| task | best non-digital | middle | worst |
+|---|---|---|---|
+| char-LM (statistics) | **analog** −0.149 @ 0.61 | spikestate +0.278 @ 0.65 | **spikeout** +1.055 @ 0.37 |
+| copy (precise recall) | **spikeout** 0.92 margin @ 0.45 | analog 0.53 @ 0.50 | **spikestate** 0.08 @ 0.50 |
+
+spikeout is the *best* variant on copy and the *worst* on char-LM, despite having the most exact
+recurrent state (`rate_state` exactly 1.0000 on both tasks). So **"state fidelity" alone does not
+explain char-LM** — it explains copy. The unifying statement both rows support:
+
+> A neuromorphic variant is cheap exactly when it degrades the part of the datapath the task
+> does not depend on. Precise-recall workloads (copy) need an exact recurrent *state* and can
+> tolerate a spiked output. Statistical workloads (char-LM) need an exact graded *output*
+> distribution and can tolerate a lossy state. Neither route is universal, and the choice is set
+> by the workload, not by the energy budget.
+
+This is a better claim than the previous "state fidelity is the axis", because it predicts both
+orderings from one principle instead of describing one and inverting for the other.
+
+### Energy footnote (unchanged direction, but analog now wins one axis outright on char-LM)
+At θ=0.15 analog is both **better quality and 1.60× cheaper** than digital (446k vs 712k
+pJ/token) — the first cell in the project where analog wins on both axes simultaneously.
+It is still **not** the cheapest variant: spikestate is 156.8k pJ/token, 2.8× cheaper than
+analog, and pays +0.278 bpc for it. The analog datapath caveat stands and is the reason:
+`W_out_MAC` alone is 334k of analog's 446k pJ, because only `W_mix` gets event pricing while
+`W_in`/`W_out` stay MAC-priced. Fixing that is a datapath design change, not a rerun.
+
+### Caveat a reviewer will raise, stated here
+Matching on *emitted* rate matches communication, not state activity: analog's `rate_state` is
+0.994 (a dense sub-threshold analog variable) against spikestate's 0.645. The argument for the
+match is that a dense analog state costs no spikes to maintain — but it does cost an analog
+storage element and its converter per unit, which the pJ proxy does not price. So "matched rate"
+means matched *wire traffic*, and that should be said explicitly rather than implied.
