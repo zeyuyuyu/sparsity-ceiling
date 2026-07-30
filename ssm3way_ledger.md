@@ -378,3 +378,48 @@ result stands on its own evidence; copy remains an open second-task replication,
 row. It holds accuracy within 10% of the sub-LSB best (0.142 vs 0.157) at a clearly-sub-1.0 event rate
 (0.455), and unlike θ=0.05/0.10 it sits above the 6-bit LSB, so the threshold is actually the operative
 knob rather than an alias for the quantizer.
+
+## 2026-07-30 ~22:40 (server local) / 14:40Z — θ calibration COMPLETE (6/6), and the matched digital reference is an HONEST NEGATIVE
+
+All six ep30 calibration cells finished (copy, L=65 → memory load M=32, seed 0, `--epochs 30 --copy_n 80000`;
+alphabet K=16 so chance acc = 0.0625 and chance bpc = 4.000). n=1 seed — suggestive, not settled.
+
+| variant | θ | acc | bpc | rate_emitted | rate_state |
+|---|---|---|---|---|---|
+| digital (reference) | — | **0.3184** | **2.879** | 1.000 | 1.000 |
+| analog | 0.05 | 0.1568 | 3.717 | 0.5989 | 0.955 |
+| analog | 0.10 | 0.1568 | 3.717 | 0.5989 | 0.955 |
+| analog | 0.20 | 0.1420 | 3.786 | 0.4547 | 0.965 |
+| analog | 0.30 | 0.1273 | 3.863 | 0.2679 | 0.950 |
+| analog | 0.50 | 0.0700 | 3.994 | 0.0271 | 0.884 |
+
+**THE NEGATIVE — the analog-state quality match does NOT replicate on copy.** With a matched-budget digital
+reference finally in hand, analog is *not* quality-matched on this task: at the calibrated θ=0.2 it reaches
+acc 0.142 / bpc 3.786 against digital's 0.318 / 2.879 — a **+0.91 bpc** gap that retains only **~31 %** of the
+baseline's above-chance accuracy margin (0.0795 vs 0.2559). Compare char-LM, where the same variant cost
+**+0.017 bpc (0.5 %)** at 3 seeds. So the analog-state result is **task-conditional, not general**, and the
+char-LM headline must be stated as a char-LM result. Even analog's *best* setting (the sub-LSB θ, emitting
+60 % — i.e. barely sparse at all) only reaches 0.157.
+
+**Mechanistic reading (consistent with the rest of the paper, and it sharpens rather than breaks the story):**
+gating *communication* is cheap when the task needs sequence *statistics* (char-LM), and expensive when the
+task needs *precise retention* of M specific symbols (copy). The analog state is lossy by construction —
+σ=0.02 injected noise, 6-bit quantization over ±4 rails, plus send-on-delta suppression of small updates —
+and copy is exactly the regime that cannot absorb that loss. Scope claim for the Imam answer: a CIM/analog
+SSM host fits statistical sequence workloads, not precise-recall workloads.
+
+**θ pick CONFIRMED at 0.2**, for the reason it was provisionally chosen: it sits above the 6-bit quantizer LSB
+(q = 2·rail/2^bits = 0.125), so the threshold is the operative knob, and it holds accuracy within ~10 % of the
+inoperative sub-LSB best while cutting emissions 60 %→45 %. θ=0.5 over-gates and collapses to chance
+(acc 0.070 @ 2.7 % emitted), so the usable window at this budget is narrow: **0.125 < θ ≲ 0.3**.
+
+**LAUNCHED (14:40Z): the full copy row at the new budget** — `run_copy_row_ep30.sh`, 36 cells =
+4 variants × M ∈ {16,32,64} (L = 2M+1 ∈ {33,65,129}) × seeds 0/1/2, at ep30/n80k, analog at θ=0.2, output
+suffix `_ep30`. All 8 A800s were idle at 1 MiB and verified unowned before launch; 8 concurrent chains, one
+per GPU. Jobs are ordered by **ascending L** so the cheap M=16 cells land first and give a usable partial row
+early. Idempotent (skips cells whose JSON exists), so never re-train after an SSH drop — but check
+`ps aux | grep "ssm3way.py"` first; note `grep ssm3wa[y]` false-positives on any ssh command line that
+mentions `ssm3way_runs`. Markers in `copy_logs/row_ep30.log`. Rough cost ~40 GPU-h ≈ 5 h wall.
+**What the row now tests:** (i) whether the analog↔digital gap **widens with M** (prediction: yes, if the
+lossy-memory reading is right), and (ii) spikestate's activity-vs-M — the actual M-dependence test of the
+firing-floor bound, which the old 6-epoch row could not perform because every variant sat at chance.
