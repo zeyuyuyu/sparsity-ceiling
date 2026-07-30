@@ -814,3 +814,141 @@ Still training: `spikestate_copy_L33_s{1,2}_H128_ep30` (GPUs 3/7). Everything el
 **Unaffected by all of this:** the 3-seed char-LM headline (analog-state 0.266 activity at +0.017 bpc) and the copy state-fidelity dichotomy (margin kept: continuous 0.92/0.46 > lossy-analog 0.53/0.31 > 1-bit 0.08/0.00 at M=16/32, matched emitted rates). Those are the paper's actual contribution and never depended on the bound.
 
 **Pending:** the two `spikestate H=128` seeds only tighten an n=1 cell whose ρ already sits between its neighbours; per the trend, no verdict change expected. Reproduce the table with the JSONs under `ssm3way_runs/*_H*_ep30.json`.
+
+## 2026-07-30 ~20:10Z — SHRINK-H BOUND ROW COMPLETE (18/18 cells, 3 seeds at every width). Verdict unchanged (NEGATIVE); one ledger CORRECTION to the predicted floor values.
+
+All 8 A800s idle, no jobs running, `shrinkH.log` shows every worker at `WORKER GPU<n> DONE`.
+Regenerate with `python agg_shrinkH.py`.
+
+### CORRECTION to earlier entries — the H-sweep floors were mislabeled
+Earlier entries quoted floors `0.0026 / 0.042 / 0.174 / 0.500` at H = 256/128/96/64. The
+first two are wrong: `0.042` and `0.110` are the floors of the *M*-sweep at fixed H=256
+(M=16/32/64 → 64/128/256 bits over H=256), and they were carried over onto the H axis by
+mistake; `0.0026` is a leftover from the superseded `log2 M` (symbol-count) reading.
+Recomputed from the corrected demand `M·log2 K = 16·log2 16 = 64 bits`, floor = `H_b^-1(64/H)`:
+
+| H | 64/H | predicted floor |
+|---|---|---|
+| 256 | 0.250 | **0.042** |
+| 128 | 0.500 | **0.110** |
+| 96  | 0.667 | 0.174 |
+| 64  | 1.000 | 0.500 |
+
+So the floor swing across the row is **12×** (0.042 → 0.500), not the 190× previously
+written. H=96 and H=64 were already right. **The verdict does not change** — only the
+magnitude of the swing that the anti-correlation is measured against. Any text quoting
+"190× floor swing" must be fixed to 12×.
+
+### Final table — copy, L=33 (M=16, K=16 ⇒ 64-bit demand), ep30 / copy_n 80k, 3 seeds per cell
+Chance acc 0.0625, chance bpc 4.000. `ρ` = spikestate recurrent-state activity.
+`H·H_b(ρ)` = the capacity certificate in bits, against the fixed 64-bit demand.
+
+| H | params | floor | digital acc | digital bpc | spikestate acc | spikestate bpc | ρ | margin kept | paired Δbpc | H·H_b(ρ) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 256 | 87,889 | 0.042 | 0.6302±0.0106 | 1.4201±0.0343 | 0.1071±0.0164 | 3.9292±0.0369 | 0.4960±0.0106 | 0.079 | +2.509±0.060 | 256.0 |
+| 128 | 28,113 | 0.110 | 0.5944±0.0023 | 1.6205±0.0167 | 0.1522±0.0049 | 3.6995±0.0278 | 0.3915±0.0417 | 0.169 | +2.079±0.016 | 123.6 |
+| 96  | 18,289 | 0.174 | 0.5889±0.0065 | 1.6258±0.0421 | 0.1570±0.0063 | 3.6762±0.0193 | 0.3909±0.0336 | 0.179 | +2.050±0.023 | 92.7 |
+| 64  | 10,513 | 0.500 | 0.5600±0.0095 | 1.8275±0.0563 | 0.1619±0.0039 | 3.6562±0.0111 | 0.2496±0.0252 | 0.200 | +1.829±0.051 | 51.9 |
+
+(The H=256 digital cell excludes `digital_copy_L33_s0_probeA_ep30.json`, the earlier
+baseline-gate probe at a different data budget — pooling it would wrongly give n=4.)
+
+### Validity gate (pre-registered criterion i): PASSES at every width
+Digital keeps 0.56–0.63 accuracy — 9–10× chance — at all four widths, on nets spanning
+10.5k to 87.9k params. Copy at M=16 is **not width-limited anywhere in H ∈ [64,256]**, so
+all four cells are legitimate tests rather than capacity-limited artifacts.
+
+### Criterion (ii): REFUTED at 3 seeds, by anti-correlation
+Predicted floor rises 12× (0.042 → 0.500) as H shrinks; measured ρ **falls** 2×
+(0.496 → 0.392 → 0.391 → 0.250). H=128 and H=96 are statistically indistinguishable
+(0.3915±0.0417 vs 0.3909±0.0336). The measured curve crosses the predicted floor between
+H=96 (ρ 2.2× above its floor) and H=64 (ρ 2.0× *below* its floor). LIF state activity is
+**width-determined, not information-determined** — criterion (iii)'s shape.
+
+### The anti-capacity finding, now fully powered (3 seeds at all four widths)
+Margin kept rises **monotonically** 0.079 → 0.169 → 0.179 → 0.200 as H shrinks 256 → 64,
+while the capacity certificate `H·H_b(ρ)` falls 256.0 → 123.6 → 92.7 → 51.9 bits against a
+fixed 64-bit demand (4.0× surplus → 0.81× deficit). Paired Δbpc improves in lockstep
+(+2.509 → +1.829). **The most over-provisioned net is the worst one.** An information
+bottleneck cannot produce that ordering; an optimization pathology can. This is the third
+and best-powered confirmation of the `cef2101` retraction — the H=64 "predicted incapacity,
+observed failure" coincidence does not survive the full row.
+
+### Final reportable verdict on the bound arm (unchanged, now at full power)
+`ρ ≥ H_b^-1(M·log2 K / H)` is **not empirically validated by this architecture at this
+scale, in either direction**. It stays in the paper as theory with a *tested* scope limit.
+Defensible sentence:
+
+> We could not construct a regime where the firing-floor bound binds on a net that still
+> learns the task: across a 12× swing in the predicted floor, measured LIF state activity
+> is anti-correlated with the floor, and spiking-state accuracy *improves* as predicted
+> capacity shrinks — so spiking-state failure on precise recall is an optimization failure
+> the bound does not explain.
+
+Never write "the bound is confirmed" or "the contrapositive earns its keep".
+
+**Unaffected:** the 3-seed char-LM headline and the copy state-fidelity dichotomy
+(continuous 0.92/0.46 > lossy-analog 0.53/0.31 > 1-bit 0.08/0.00 margin kept at M=16/32 at
+matched emitted rates). Those are the paper's contributions and never depended on the bound.
+
+### Energy footnote
+spikestate is cheaper at every width (107.7k / 44.8k / 32.5k / 20.3k pJ/token at
+H=256/128/96/64 vs digital 398.0k / 123.6k / 78.6k / 43.0k) and buys 0.08–0.20 of the
+margin. Same "cheap and useless" pattern as the M=32 floor control: a pJ number is
+meaningless without the quality it purchased.
+
+## 2026-07-30 ~20:15Z — NEXT ROW LAUNCHED: char-LM state-fidelity dichotomy at MATCHED EMITTED RATE
+
+With the bound arm closed and all 8 GPUs idle, the remaining high-value cell is the one the
+copy task has and char-LM does not: a **matched-emitted-rate** comparison of the three
+non-digital variants. On copy the dichotomy is clean because all three emit at ~0.45–0.50,
+so the 0.92 / 0.53 / 0.08 margin spread is attributable to state fidelity and not to how
+much each variant communicates. On char-LM the existing 3-seed row compares them at
+*unmatched* rates — analog emits 0.266 (θ=1.0) while spikestate sits at 0.645 and spikeout's
+state is fully dense at 1.000 — so a critic can say analog only looks good because it is
+being read at a different operating point.
+
+Measured char-LM emission targets, pulled from the existing 3-seed row:
+
+| variant | rate_state | rate_emitted | bpc |
+|---|---|---|---|
+| digital | 1.000 | 1.000 | 3.3429±0.0221 |
+| spikestate | 0.6453±0.0202 | **0.6453±0.0202** | 3.6205±0.0130 |
+| spikeout | 1.0000±0.0000 | **0.3691±0.0374** | 3.3978±0.0292 (paired +1.055) |
+
+Seed-0 analog θ curve: θ=0.10 → emit 0.722 / bpc 3.1804; θ=0.25 → 0.557 / 3.2112;
+θ=0.50 → 0.485 / 3.2362; θ=1.00 → 0.279 / 3.3290. So **θ≈0.15 brackets spikestate's rate and
+θ≈0.75 brackets spikeout's** — analog can be read against *both* comparators at their own
+operating points, which is better than the single match originally planned.
+
+`run_charlm_theta.sh` (lock-dir work queue, same design as `run_shrinkH.sh`): 12 listed cells
+= analog × θ ∈ {0.15, 0.75, 0.25, 0.50} × seeds {0,1,2}, of which 10 need training (s0 at
+θ=0.25 and θ=0.50 already exist and are skipped by the idempotence check — out names follow
+the existing `analog_charlm_s<seed>_theta<θ>.json` convention deliberately). Matched points
+are ordered first so a partial row is already usable. char-LM at the **identical budget to
+the existing 3-seed row** (default 6 epochs, 1.4M chars, lam=0), so the new points drop
+straight into that table. Every θ in the grid is above the quantizer LSB
+`2·rail/2^bits = 8/64 = 0.125` and therefore operative.
+
+**Pre-registered reading, written before any cell lands:**
+- *Confirmation* — at θ≈0.15 (matching spikestate's 0.645 emission), analog's paired Δbpc vs
+  digital stays well below spikestate's +0.278, reproducing the copy dichotomy's ordering
+  (continuous > lossy-analog > 1-bit) on a second task at matched rate.
+- *Refutation* — analog's advantage at θ=1.0 was an operating-point artifact: forced up to
+  0.645 emission its Δbpc approaches or exceeds spikestate's +0.278. That would restate the
+  char-LM headline as "analog reaches a better rate/quality *point*", not "analog is better
+  at matched rate" — a materially weaker claim, and one that must be caught before the
+  writeup rather than after.
+- *Most likely* — analog's Δbpc rises with emission but stays below spikestate's, i.e.
+  confirmation with a smaller margin than the θ=1.0 comparison suggests.
+
+**A second, unplanned question this row settles.** Seed-0 analog at θ=0.1 scored bpc
+**3.1804 vs digital's 3.3175 — it BEAT the digital baseline.** That was previously dismissed
+as a single seed that "did not generalize", but it was never actually tested at 3 seeds: the
+existing 3-seed analog column is θ=1.0 only. If the low-θ advantage survives three seeds, the
+char-LM claim strengthens from "quality-matched to within 0.5%" to "matches or beats digital
+at ~65% emission", which would be a materially stronger headline. Stated up front so the
+result counts either way: the honest prior is that it is seed noise (digital's own seed sd is
+0.022 bpc, and the θ=1.0 column was consistently *worse* than digital across all 3 seeds).
+
+Markers in `copy_logs/charlm_theta.log`, per-cell logs in `charlm_theta_logs/`. No results yet.
