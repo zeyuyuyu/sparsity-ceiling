@@ -624,3 +624,50 @@ is the cleanest illustration that a pJ number is meaningless without the quality
 
 Reproduce: `python agg_copy.py 30` in /work/zeyuwang/neuro_poc (budgets never pooled; ep=6 row remains
 labeled INCONCLUSIVE). Configs/seeds in each `ssm3way_runs/*.json`.
+
+## Shrink-H row — the only viable test of the firing-floor bound (LAUNCHED 2026-07-30T17:39Z)
+
+The copy row settled that **M-dependence of the bound is untestable on this task**: a
+spiking-state SSM is already at exactly chance by M=32 (margin kept 0.00), so it never
+reaches the load M=64 where the bound starts to bind. Binding requires storage; this net
+stores nothing at the binding load.
+
+The bound `rho >= H_b^-1(M*log2K / H)` also binds when **H shrinks**, and that route keeps
+the task inside the net's learnable range. So: hold M=16 (L=33, K=16 => 64 bits to retain),
+sweep the hidden width.
+
+| H | M*log2K / H | predicted floor rho | status |
+|---|---|---|---|
+| 64  | 1.000 | **0.500** | new — the binding cell |
+| 96  | 0.667 | 0.174 | new |
+| 128 | 0.500 | 0.042 | new |
+| 256 | 0.250 | 0.0026 | already in the ep30 main row (non-binding; measured 0.4960+-0.0106) |
+
+Row: 18 new cells = {digital, spikestate} x H in {64,96,128} x seeds {0,1,2}, copy L=33,
+epochs 30, copy_n 80000, out suffix `_H<H>_ep30`. Driver `run_shrinkH.sh <gpu>` is a
+lock-dir work queue (atomic `mkdir` claim per cell) so one worker per GPU can be added as
+GPUs free, with no duplicated cells and no re-training on restart. Cells are ordered
+H-then-seed-then-variant so a matched digital/spikestate pair at the binding H=64 lands
+first. First worker started on GPU 4 (the only idle GPU; the other 7 are still on the
+ep30 M=64 column).
+
+**Pre-registered reading, written before any cell lands:**
+1. The test is only valid if the **digital reference at that H still learns** copy
+   meaningfully above chance (acc 0.0625). If digital collapses at H=64, that H is
+   capacity-limited and tells us nothing about the bound — report it as such, do not read
+   spikestate's activity there as a floor confirmation.
+2. **Confirmation** = on the H values where digital still learns and spikestate retains a
+   non-trivial margin, spikestate's measured state activity sits at or above the predicted
+   floor AND **rises as H shrinks**, tracking 0.0026 -> 0.042 -> 0.174 -> 0.500. The
+   measured H=256 point is 0.4960, i.e. already far above its own floor, so the
+   discriminating observable is the **trend**, not any single cell.
+3. **Refutation** = activity stays flat near ~0.5 across all H (or falls) while the nets
+   still learn. That would mean ~0.5 is an optimization artifact of the LIF state, not the
+   information-theoretic floor, and the bound's empirical support would be nil.
+4. **Most likely outcome, stated up front:** spikestate loses retention as H shrinks (it
+   already keeps only 0.08 of digital's margin at H=256/M=16), so the honest result may
+   again be "satisfied but uninformative". If retention dies before the floor binds, the
+   verdict is that **the bound is not empirically testable with this architecture at this
+   scale** — which is a real, reportable negative, not a failed experiment.
+
+No results yet.
