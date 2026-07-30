@@ -1119,3 +1119,79 @@ is run expecting to weaken its own project's best result, which is the point of 
 Whatever lands goes in the paper either way.
 
 **No results yet.**
+
+### 2026-07-30 ~21:00Z — RESULT: the control row is COMPLETE (12/12, 3 seeds/arm, 0 failures) and it is the OVERSHOOT branch (C). **The char-LM "analog beats digital" headline is RETRACTED.**
+
+Char-LM, 6 ep / 1.4M chars / lam=0 / H=256 / 173,596 params, paired Δbpc vs the
+**unregularized** digital baseline (negative = better than it):
+
+| arm | bpc | acc | paired Δbpc | per-seed |
+|---|---|---|---|---|
+| digital, no reg (old reference) | 3.3429±0.0221 | 0.3441 | +0.0000 | — |
+| **digital + noise σ=0.02** | **3.0338±0.0165** | 0.4044 | **−0.3091±0.0244** | −0.287/−0.335/−0.306 |
+| **digital + noise 0.02 + 6-bit** | **3.0321±0.0121** | 0.4041 | **−0.3109±0.0169** | −0.294/−0.328/−0.311 |
+| **digital + noise σ=0.05** | **3.0309±0.0104** | 0.4060 | **−0.3120±0.0209** | −0.290/−0.331/−0.315 |
+| digital + weight decay 1e-4 | 3.3476±0.0122 | 0.3459 | **+0.0047±0.0110** | ≈0 |
+| analog θ=0.15 (the headline cell) | 3.1936±0.0078 | 0.3764 | −0.1493±0.0144 | −0.133/−0.158/−0.158 |
+
+**(C) OVERSHOOT, at 3 seeds and far outside seed noise.** State noise on the digital
+baseline is worth **−0.309 bpc**, which is **2.1× the entire analog advantage**
+(−0.149). Differencing the two paired estimates against the same seeds, **analog
+θ=0.15 is +0.160 bpc WORSE than a noise-regularized digital baseline.** The
+`a134f05` headline — "on char-LM the analog-state SSM beats a matched digital
+baseline by 0.149±0.014 bpc" — was an artifact of comparing against an
+**under-regularized** baseline. It is retracted. The ledger's own stated caveat was
+right, and understated: the mechanism is not merely regularization, it is
+regularization the analog route captures only **half** of.
+
+**Three further readings, each a real finding rather than a hyperparameter detail:**
+
+1. **Quantization contributes nothing; it is the additive noise alone.** σ=0.02 with
+   6-bit quantization (−0.3109) and without it (−0.3091) differ by 0.002 bpc against
+   seed sd 0.017–0.024 — indistinguishable. And the dose is already **saturated** at
+   σ=0.02: σ=0.05 gives −0.3120, the same. So of the three lossy mechanisms in the
+   analog state (noise / 6-bit quantization / send-on-delta), only the noise carries
+   the quality effect.
+2. **Weight decay does nothing (+0.005±0.011), which is an informative dissociation.**
+   The effect is not generic capacity control — a conventional regularizer at a
+   conventional strength is worth exactly zero here. It is specifically **state-level
+   stochasticity injected into the recurrence**. That rules out "any regularizer would
+   have done it" and pins the mechanism precisely.
+3. **The decomposition of analog's net effect is now explicit and it is the useful
+   result of this row.** Analog's net −0.149 = a **noise benefit of −0.309** plus a
+   **send-on-delta gating cost of +0.160** at θ=0.15. The gating cost grows with θ
+   exactly as the emitted rate falls: at θ=1.0 the net is +0.017, i.e. a gating cost
+   of +0.326 at 27% emission. So the analog datapath does supply a genuinely valuable
+   regularizer for free and physically — it simply also charges for the sparsity it
+   buys, and the charge is larger than the gift is at every θ.
+
+**What the honest char-LM claim becomes.** The digital noise is **training-time only**
+(`if self.training` in `_degrade`), so digital+noise has **identical inference cost** to
+plain digital — 712,448 pJ/token. The comparison is therefore: regularized digital
+**3.034 bpc at 712k pJ/tok** vs analog θ=0.15 **3.194 bpc at 446k pJ/tok**. Analog buys
+a **1.60× proxy-energy reduction for a +0.160 bpc (5.3%) quality cost**. That is a real
+and defensible energy/quality tradeoff — it is simply **not** a free lunch and **not** a
+quality win. Never write "analog beats digital on char-LM" again.
+
+**What is UNAFFECTED.** The ordering among the neuromorphic variants does not move,
+because re-referencing shifts every variant by the same constant. Against the
+**regularized** digital baseline the char-LM row reads analog **+0.160** ≪ spikestate
+**+0.587** ≪ spikeout **+1.364** — same order, same conclusion that analog-state is by
+far the best neuromorphic datapath on char-LM. The **datapath-degradation principle**
+(a variant is cheap exactly when it degrades the part of the datapath the task does not
+depend on) is likewise untouched, since it is a statement about *which variant wins
+where*, and both orderings survive re-referencing. The closed bound arm is unaffected.
+
+**A CONSEQUENCE THAT PROPAGATES, and must be handled in the writeup.** Every char-LM
+number in this project was referenced to an under-regularized digital baseline, which
+**flattered every neuromorphic variant** by ~0.31 bpc. All char-LM Δbpc figures should
+be restated against the regularized baseline. The **copy** row was never given this
+control, and there the bias runs the *same* direction — a regularized digital baseline
+would be *better*, so every copy "margin kept" figure (spikeout 0.92/0.46, analog
+0.53/0.31, spikestate 0.08/0.00) is an **upper bound** on what those variants actually
+retain. Copy conclusions therefore get *more* negative for the neuromorphic routes, not
+less; the dichotomy's direction is safe but its magnitudes are optimistic. **Running the
+same 4-arm control on copy at M=16 is now the highest-value remaining data cell.**
+
+**Reproduce:** `run_digreg.sh <gpu>`; table via `python agg_charlm.py`; 12 run JSONs in
+`ssm3way_runs/digital_charlm_s*_reg_*.json`.
