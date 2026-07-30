@@ -1,3 +1,5 @@
+> **SUPERSEDED 2026-07-31 — see [imam_ssm_memo_v3.md](imam_ssm_memo_v3.md).** This v2 is literature-only; its §6 states a hypothesis that the completed experiment partly refuted (analog does not match a regularization-controlled digital baseline, and the verdict is workload-conditional). Kept for history.
+
 # Are neuromorphic chips suitable for SSMs — and is the *non-spiking* route also a fit?
 
 **Response to N. Imam's TODO — Zeyu Wang** · *(v2 — claims below checked against full text of the load-bearing papers; reading-status noted at the end)*
