@@ -1363,3 +1363,51 @@ State at tick start: all 8 A800s idle (1 MiB, 0% util), zero `ssm3way.py` proces
 No numbers were re-derived for this memo; every figure was copied from the published ledger entries above (48510c8 and earlier), so nothing here can drift from the run JSONs. v2 is retained in the repo for history and now carries a superseded pointer.
 
 **Remaining writeup targets, in order:** (1) restated char-LM headline into `paper.tex`, (2) the datapath-degradation principle as the paper's central claim with the two matched-rate tables as evidence, (3) the closed bound arm as theory-with-a-tested-scope-limit, (4) the talk deck / `speaker_notes.md` still carry the pre-retraction framing on the SSM slides and need the same correction pass. **No data cells remain; do not launch training.**
+
+## 2026-07-31 tick — WRITEUP STEP 2: the talk deck's speaker notes are corrected to the post-retraction SSM framing (zero-GPU)
+
+No data cells remain and no jobs were running (no `ssm3way.py` processes; all A800s free of our work), so this was a
+writing tick per the standing "writeup is the bottleneck" verdict.
+
+**What was stale — and it was worse than "out of date".** `talk/speaker_notes.md` presented direction #1 (the
+analog-state SSM) as a *proposed* experiment: Slide 8 said "this is the cleanest test of the core hypothesis, and I can
+start it in simulation today", and the Q&A appendix pre-registered a falsification condition ("if an analog-state
+recurrent model still can't sparsify below the RNN floor at matched quality") for an experiment that has since run to
+completion. Presenting from these notes would have pitched a finished, three-seed, two-task result as future work — and
+would have left the speaker with no prepared answer for the two questions the data now forces (the retraction, and
+whether the speaker's own bound survived its test).
+
+**Seven in-place edits, all exact-matched (patch aborts if any anchor is missing) — no numbers re-derived, every figure
+copied from published ledger entries / `imam_ssm_memo_v3.md`, so the notes cannot drift from the run JSONs:**
+1. A STATUS block at the top flagging that direction #1 has run, that the headline moved twice with one retraction, and
+   that the .pptx/.pdf have NOT been regenerated.
+2. Slide 8 direction One rewritten from plan to result: the 4-way param-matched design, the matched-communication-rate
+   char-LM comparison (analog 0.43 bpc better than spikestate at equal emission, 1.10 better than spikeout), the
+   **unprompted self-retraction** of "analog beats digital" with the −0.309 noise / +0.160 gating decomposition and the
+   weight-decay-is-zero dissociation, the copy inversion (spikeout 0.87 / analog 0.50 / spikestate exactly chance while
+   cheapest), and the datapath-degradation principle as the slide-worthy line.
+3. SEQUENCING updated (one is complete; three now has data to anchor it).
+4. "Which first?" flipped from #1 to **#2 (measured Loihi/SpiNNaker2 energy)** — the honest answer now, since every pJ
+   number in direction #1 is a 45nm proxy in simulation and the analog datapath's storage element + converter are
+   unpriced by it. Hardware measurement is the binding constraint on the argument.
+5. The Slide 6 "so just build analog neurons?" aside now reports the measured, workload-scoped answer.
+6. The "what is YOUR contribution?" answer expanded to four items (adds the completed study + the principle), plus a
+   new prepared Q&A entry **"Does your own bound hold up empirically?" answered NO** with the shrink-H numbers (12×
+   floor swing vs ρ falling 0.496→0.250; margin kept rising 0.079→0.200 as capacity shrinks ⇒ optimization pathology,
+   not information bottleneck), and the explicit separation of the still-standing empirical ~50% char-LM ceiling from
+   the bound's failed quantitative prediction.
+7. The falsification answer rewritten to report direction #1's qualified-positive-with-a-negative-inside, and to name
+   direction #2 as the remaining load-bearing experiment.
+
+Plus a **PPTX EDIT LIST** appended to the notes: the deck itself is untouched and still mislabels direction One as
+future work, needs one new results slide, needs the bound annotated as scope-limited, and must never gain an "analog
+beats digital" slide.
+
+**Verified, not assumed:** both remaining occurrences of the string "beats digital" in the file sit inside retraction
+language (the self-retraction and the never-add-this-slide instruction). Backup at `/tmp/speaker_notes.bak`.
+
+**Remaining writeup targets:** (1) the `.pptx`/`.pdf` regeneration per the embedded edit list; (2) the paper. Note a
+finding from this tick: **the arXiv `sparsity_ceiling.tex` (local, `/home/zeyu/neuro_paper/`) contains ZERO SSM content**
+— `grep -ci "ssm\|analog"` returns 0. So "restate the char-LM headline in paper.tex" was mis-scoped in earlier ticks:
+there is no SSM section to restate. The SSM×neuromorphic arm is a **separate second paper**, not a v2 edit, and that
+scoping decision is the next real writeup step.

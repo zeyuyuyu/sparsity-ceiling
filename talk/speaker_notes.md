@@ -2,6 +2,14 @@
 
 *Per-slide script + facts to have ready + anticipated professor questions. Also embedded in the .pptx notes pane. Full talk ~8-9 min + Q&A.*
 
+> **STATUS 2026-07-31 — direction #1 HAS NOW RUN; these notes are corrected accordingly.** The analog-state SSM
+> experiment that Slide 8 proposes as future work is complete (char-LM + synthetic copy, 3 seeds, parameter-matched
+> 4-way). Slide 8's direction One, the Slide 6 aside, and two Q&A answers below are rewritten to report the measured
+> answer instead of proposing the test. **The headline moved twice and one intermediate claim was retracted — do not
+> present "analog beats digital."** Full numbers and provenance: `talk/imam_ssm_memo_v3.md`; canonical ledger
+> `ssm3way_ledger.md`. **The .pptx/.pdf slides have NOT been regenerated** — see the pptx edit list at the end of
+> this file before presenting from the deck.
+
 ---
 
 ## Slide 1. Title — Beyond Attention
@@ -62,7 +70,7 @@ Three -- local, multi-timescale learning: fast spikes, slow synaptic eligibility
 
 The bottom line is the existence proof: the brain runs general intelligence on 20 watts -- about a thousand times more efficient than GPUs per equivalent operation -- using prediction and sparsity, not attention. So the paradigm demonstrably scales to general intelligence. That's the whole reason to take it seriously.
 
-IF ASKED "so just build analog neurons?": Essentially yes -- that's my direction #1, an analog-state SSM. The bet is analog state plus event-driven spikes, not spiking Transformers.
+IF ASKED "so just build analog neurons?": Essentially yes -- that's my direction #1, an analog-state SSM, and I have since RUN it. Analog state does get under the spiking-state firing floor at matched communication rate, but against a properly regularized digital baseline it is an energy-for-quality tradeoff -- about 1.6x less proxy energy for 5 percent worse bpc -- and it inverts on precise-recall workloads. So: analog state plus event-driven spikes, yes, but scoped to statistical sequence workloads, not as a universal drop-in.
 
 ---
 
@@ -117,7 +125,33 @@ IF ASKED "why would this ever beat Transformers?": Two forcing functions. The en
 
 SAY: Concretely, four projects.
 
-One -- escape the firing floor with analog state. Build a state-space model whose recurrent state is a leaky ANALOG variable, sub-threshold, with spikes only for output and error. Then measure attainable firing versus the spiking RNN: does it break my bound's assumption and sparsify the way attention did? This is the cleanest test of the core hypothesis, and I can start it in simulation today.
+One -- escape the firing floor with analog state. **This one is DONE -- present it as a result, not a plan.** I built a
+parameter-matched 4-way comparison (173,596 params, identical tensors, only the position of the nonlinearity moves):
+a digital S4D-style baseline; continuous state with a spiking OUTPUT, the SPikE-SSM design; an analog state -- leaky,
+sub-threshold, 6-bit over plus/minus 4 rails, noise sigma 0.02, send-on-delta events; and a fully spiking state as the
+floor control. Char-level language modeling, plus a synthetic copy task, three seeds each.
+
+SAY: The answer is yes, analog state escapes the floor -- and it is a tradeoff, not a free lunch. On char-LM the analog
+state communicates on 61 percent of steps and still beats both spiking variants at MATCHED communication rate: 0.43 bpc
+better than spiking-state at the same emission, 1.10 bpc better than output-spiking. The fully spiking state sits at 65
+percent activity and is 0.28 bpc worse -- the floor is real and analog is under it.
+
+BUT SAY THIS UNPROMPTED -- it is the credibility move: my first reading was that analog BEATS the digital baseline, and
+**I retracted it.** When I gave the digital baseline the same medicine -- training-time state noise -- the baseline gained
+0.31 bpc, twice the entire analog advantage. So the honest number is that analog buys a **1.6x proxy-energy cut for a 0.16
+bpc, 5.3 percent, quality cost.** Energy for quality, workload-conditional. Weight decay bought exactly zero, so the
+mechanism is specifically state-level stochasticity in the recurrence, not generic regularization.
+
+AND the direction inverts by workload. On the precise-recall copy task the ranking flips completely: output-spiking is
+best, keeping 87 percent of the baseline's above-chance margin; analog keeps 50 percent; and a 1-bit spiking state does
+not degrade recall, it ELIMINATES it -- exactly chance at 32 symbols, while being the cheapest cell on the energy proxy.
+That is the cleanest demonstration I have that a pJ number is meaningless without the quality it purchased.
+
+The unifying principle, which is what I would actually put on a slide: **a neuromorphic variant is cheap exactly when it
+degrades the part of the datapath the task does not depend on.** Statistical sequence workloads need an exact graded
+OUTPUT and tolerate a lossy state -- analog wins. Precise-recall workloads need an exact recurrent STATE and tolerate a
+spiked output -- output-spiking wins. Same 6-bit state quantizer costs nothing on char-LM and 0.37-0.39 bpc on copy.
+So the silicon recommendation splits by workload rather than naming one winner.
 
 Two -- predictive coding on neuromorphic silicon. Implement an error-propagating hierarchy trained with equilibrium propagation -- local rules -- and MEASURE real energy on Loihi 2 or SpiNNaker2. That turns my 45-nanometer proxy into an actual hardware measurement. This one needs INRC access to Loihi, which the PhD provides.
 
@@ -125,9 +159,9 @@ Three -- formalize the trade-off. Prove the recurrence-versus-attention, firing-
 
 Four -- closed-loop world-model at the edge. A predictive world-model plus planning loop for a low-power embodied agent, where real-time, event-driven perception-action is decisive. This is the applied payoff.
 
-SEQUENCING: One and three I can start immediately -- simulation and theory. Two needs hardware access. Four is the longer applied arc.
+SEQUENCING: One is COMPLETE in simulation (see above). Three I can start immediately -- theory, and it now has the direction-#1 data to anchor it. Two needs hardware access. Four is the longer applied arc.
 
-IF ASKED "which first?": Number one -- it directly tests whether analog state is the escape route, and it needs nothing but simulation to get the first signal.
+IF ASKED "which first?": Number one is already run, so the honest answer is number TWO -- real measured energy on Loihi 2 or SpiNNaker2. Direction #1 gave a proxy-energy result in simulation and its single biggest caveat is that no pJ number in it was ever measured on silicon; the analog datapath also pays for a storage element and converter per unit that a 45nm MAC/AC proxy does not price. Hardware measurement is now the binding constraint on the whole argument, and it is exactly what the PhD unlocks.
 
 ---
 
@@ -146,7 +180,19 @@ HAVE READY FOR Q&A: the arXiv paper; the bound's one-line derivation (counting a
 ## Appendix — Anticipated hard questions (cross-slide)
 
 **"This is all known work — what is YOUR contribution?"**
-Three things: (1) the empirical *sparsity-ceiling* result — a controlled, same-architecture measurement that recurrence floors at ~50% firing while attention sparsifies to 2% but pays a KV memory wall; (2) the information-theoretic firing-floor bound and its escape conditions; (3) the *floor-vs-wall dichotomy* as a framing, plus the specific analog-state experiments to test it. The survey is context; the result, the bound, and the experiments are mine.
+Four things: (1) the empirical *sparsity-ceiling* result — a controlled, same-architecture measurement that recurrence floors at ~50% firing while attention sparsifies to 2% but pays a KV memory wall; (2) the information-theoretic firing-floor bound and its escape conditions — stated as theory **with a tested scope limit**, see the next question; (3) the *floor-vs-wall dichotomy* as a framing; and (4) the completed analog-state SSM study — a parameter-matched 4-way comparison across two tasks and three seeds, yielding the **datapath-degradation principle** (a neuromorphic variant is cheap exactly when it degrades the part of the datapath the task does not depend on) and a workload-split silicon recommendation. The survey is context; the results, the bound, and the principle are mine.
+
+**"Does your own bound hold up empirically?"** — *ask yourself if they don't; leading with it is the credibility move.*
+**No, and I tested it hard enough to say so.** To make the floor bind I shrank the hidden width on a task the network can
+still learn, sweeping H = 256/128/96/64 on copy with 16 symbols, which moves the predicted floor 12x from 0.042 to 0.500.
+The digital reference stays 9-10x above chance at every width, so all four cells are valid tests. Measured spiking-state
+activity **falls** — 0.496, 0.392, 0.391, 0.250 — while the predicted floor rises, and at H=64 it lands *below* its own
+floor. Worse for the bound: the network gets BETTER as it gets narrower, margin kept rising 0.079 to 0.200 while its
+capacity certificate falls from a 4x surplus to a deficit. An information bottleneck cannot produce that ordering; an
+optimization pathology can. So: the bound is not empirically validated by this architecture at this scale in either
+direction, spiking-state failure on precise recall is an optimization failure the bound does not explain, and the bound
+stays in the paper as theory with that scope limit stated. The empirical ~50% char-LM ceiling is a separate,
+still-standing measurement — what failed is the bound's quantitative prediction as width varies, not the observation.
 
 **"Why not just run Mamba on a GPU?"**
 Because the target is the ~1000× energy / 20 W regime — always-on, embodied, at the edge. Mamba-on-GPU is excellent but lives in the datacenter power envelope. The bet is specifically about the hardware where analog state and event-driven compute are the enabler.
@@ -158,4 +204,29 @@ Two things changed: hardware (analog neuromorphic maturing — Loihi 2, memristo
 I use the brain as an *existence proof* of the paradigm's energy ceiling, not as a blueprint. Every claim I make is a hardware-physics claim — firing floor, memory wall, analog-state escape — and each is testable in simulation and on Loihi.
 
 **"What would falsify your bet?"**
-If an analog-state recurrent model still can't sparsify below the RNN floor at matched quality (direction #1 returns negative), or if EqProp/PC energy on real Loihi doesn't beat the ANN once measured (direction #2). Both are near-term, decisive experiments.
+Direction #1 was the near-term decisive one and it has now returned a **qualified positive with a real negative inside
+it**, which I would rather report myself than have found. Positive: the analog-state model does sparsify below the
+spiking-state floor at matched communication rate, on both tasks. Negative: against a properly regularized digital
+baseline it costs quality rather than matching it (0.16 bpc for 1.6x proxy energy on char-LM), the advantage inverts on
+precise-recall workloads, and my own firing-floor bound failed its width-sweep test. What would falsify the remaining
+thesis is direction #2: if EqProp/PC energy on real Loihi doesn't beat the ANN once actually measured, the
+hardware-physics half of the argument goes with it. That is now the load-bearing open experiment, because everything in
+direction #1 is a 45nm proxy in simulation, never silicon.
+
+---
+
+## PPTX EDIT LIST (deck not yet regenerated — 2026-07-31)
+
+`beyond_attention_paradigms.pptx` / `.pdf` still carry the **pre-result** SSM framing. Before presenting:
+
+1. **Slide 8 ("Proposed directions")** — direction One must move from the proposed column to a result. It is the
+   strongest slide in the deck now and it is currently mislabeled as future work.
+2. **Add one results slide** between Slides 6 and 8: the parameter-matched 4-way table at matched communication rate
+   (char-LM), the copy inversion, and the one-line datapath-degradation principle.
+3. **Anywhere the firing-floor bound is presented as established** — annotate "theory; scope limit tested, see notes".
+   The bound is not empirically validated as width varies.
+4. **Never add a slide saying analog beats digital.** That claim was retracted; the surviving claim is a 1.6x
+   proxy-energy cut for a 0.16 bpc quality cost, workload-conditional, and the proxy is not a silicon measurement.
+
+Numbers for any new slide should be copied from `imam_ssm_memo_v3.md`, not re-derived, so the deck cannot drift from
+the run JSONs.
