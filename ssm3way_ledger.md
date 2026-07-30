@@ -240,7 +240,82 @@ comparing means, since seed variance is shared):
 - theta interacts with rail/bits (at theta=1.0 events fire on ~1/4-rail changes);
   not yet disentangled.
 
-### NEXT
+### NEXT (SUPERSEDED — this row ran 2026-07-30 11:25Z; see the 11:40Z copy-row section below)
 `copy` task at 2-3 memory loads M for all 4 variants — the bound is stated in M and
 charlm does not expose it. That is the experiment that tests the bound M-dependence
 across variants, rather than only its scope.
+
+---
+
+## 2026-07-30 ~11:40Z — the `copy` row (M-dependence test): NEGATIVE / INCONCLUSIVE
+
+38 cells: 4 variants x L in {33,65,129} (memory load M=(L-1)/2 = 16/32/64 symbols)
+x seeds 0/1/2, plus analog theta in {0.1,0.3} calibration at M=32 seed 0. Analog
+cells used the charlm-calibrated theta=1.0. Driver `run_copy_row.sh`, 8 concurrent
+(one per idle A800), finished 11:25:29Z. Table regenerable with `agg_copy.py`.
+
+Copy task: alphabet K=16 (so **chance accuracy = 0.0625 and chance bpc = 4.000**),
+sequence `[s_1..s_M, DELIM, s_1..s_M]`, loss and metric on the recalled half only.
+
+| M | variant | n | acc | bpc | rate_emitted | rate_state |
+|---|---|---|---|---|---|---|
+| 16 | `digital` | 3 | 0.4138 +- 0.0033 | 2.4253 +- 0.0093 | 1.0000 | 1.0000 |
+| 16 | `spikeout` | 3 | 0.1975 +- 0.0055 | 3.4362 +- 0.0315 | 0.5294 +- 0.0079 | 1.0000 +- 0.0000 |
+| 16 | `analog th=1` | 3 | 0.0722 +- 0.0026 | 3.9963 +- 0.0033 | 0.0795 +- 0.0092 | 0.9776 +- 0.0156 |
+| 16 | `spikestate` | 3 | 0.0636 +- 0.0023 | 4.0089 +- 0.0002 | 0.4512 +- 0.0144 | 0.4512 +- 0.0144 |
+| 32 | `digital` | 3 | 0.2071 +- 0.0018 | 3.3949 +- 0.0119 | 1.0000 | 1.0000 |
+| 32 | `spikeout` | 3 | 0.1538 +- 0.0037 | 3.7297 +- 0.0153 | 0.4569 +- 0.0177 | 1.0000 +- 0.0000 |
+| 32 | `analog th=0.1` | 1 | 0.1596 | 3.7029 | 0.7402 | 0.9706 |
+| 32 | `analog th=0.3` | 1 | 0.1268 | 3.8495 | 0.4158 | 0.9698 |
+| 32 | `analog th=1` | 3 | 0.0695 +- 0.0011 | 4.0012 +- 0.0006 | 0.0461 +- 0.0027 | 0.9830 +- 0.0030 |
+| 32 | `spikestate` | 3 | 0.0623 +- 0.0013 | 4.0067 +- 0.0023 | 0.3827 +- 0.0543 | 0.3827 +- 0.0543 |
+| 64 | `digital` | 3 | 0.1387 +- 0.0046 | 3.8219 +- 0.0189 | 1.0000 | 1.0000 |
+| 64 | `spikeout` | 3 | 0.1070 +- 0.0043 | 3.9210 +- 0.0121 | 0.4458 +- 0.0308 | 1.0000 +- 0.0000 |
+| 64 | `analog th=1` | 3 | 0.0651 +- 0.0012 | 4.0017 +- 0.0007 | 0.0326 +- 0.0038 | 0.9894 +- 0.0034 |
+| 64 | `spikestate` | 3 | 0.0628 +- 0.0006 | 4.0032 +- 0.0005 | 0.3783 +- 0.0421 | 0.3783 +- 0.0421 |
+
+### What this row was supposed to test, and why it did not
+The bound `rho >= H_b^-1(log2 M / H)` is stated in the memory load M, so the
+prediction was: **spikestate activity RISES with M, analog stays flat.**
+
+Measured spikestate activity: **0.451 (M=16) -> 0.383 (M=32) -> 0.378 (M=64)** —
+it does not rise, it drifts slightly *down*.
+
+**That is not evidence against the bound, because the test is vacuous as run.**
+The bound constrains a network that actually *carries* M symbols in spikes. At
+every M, spikestate sits at chance (bpc 4.008/4.007/4.003 vs the uniform-prediction
+value 4.000) — it stores nothing, so there is no M-bits-of-memory for the bound to
+price. The same holds for analog at theta=1.0 (bpc 3.996-4.002, also chance).
+**No variant solves copy at this budget, and the baseline barely does:** digital
+reaches only 0.414 acc at M=16 and decays to 0.139 at M=64. A capacity/optimisation
+failure of the *shared* backbone cannot discriminate between variants' memory codes.
+**Honest status of the M-dependence claim: UNTESTED, not refuted.**
+
+### Two real findings the row did produce
+1. **theta does NOT transfer across tasks.** theta=1.0, calibrated on charlm (where
+   it gave 27% activity at a 0.5% bpc cost), *collapses* analog to chance on copy at
+   every M, emitting only 3-8% events. The M=32 sweep shows the working range is far
+   lower: theta=0.1 -> acc 0.160 @ 0.740 emitted, theta=0.3 -> acc 0.127 @ 0.416.
+   Any future claim must carry per-task theta calibration; the charlm headline
+   number is not a task-independent operating point.
+2. **At matched communication activity, analog-state still beats spiking-state**
+   — the one direction-consistent signal here. At M=32, analog theta=0.3 emits
+   0.416 for acc 0.127, spikestate emits 0.383 for acc 0.062 (chance). So ~2x the
+   above-chance margin at comparable event rate. **n=1 seed, degraded regime —
+   suggestive only, not a result.**
+3. Incidental: `spikeout` is the best non-digital variant on copy (0.198/0.154/0.107),
+   inverting its charlm ranking where it was worst. Its `rate_state` is again
+   **exactly 1.0000** at every M — the SPikE-SSM signature (dense state, sparse
+   output) is the most robust single observation across both tasks.
+
+### Fix required before the M-dependence test means anything
+The gate is the *baseline*: digital must actually solve copy (acc -> ~1.0 at M=16)
+before variant comparison is informative. Sequence: (i) cheap single-cell probe —
+digital, M=16, more epochs (25-30) and/or more sequences, confirm it saturates;
+(ii) per-task theta calibration for analog at the working M; (iii) only then rerun
+the full row. Do not report the current copy table as a bound test.
+
+### Effect on the charlm headline
+None — charlm (3 seeds) stands as previously recorded. But the copy row does bound
+its generality: the analog-state advantage is demonstrated on char-LM at one theta,
+and did **not** reproduce on a second task under transferred hyperparameters.

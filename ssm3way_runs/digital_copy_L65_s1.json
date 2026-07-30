@@ -1,0 +1,28 @@
+{
+  "variant": "digital",
+  "task": "copy",
+  "seed": 1,
+  "params": 87889,
+  "vocab": 17,
+  "E": 64,
+  "H": 256,
+  "L": 65,
+  "epochs": 6,
+  "lr": 0.002,
+  "lam": 0.0,
+  "target": null,
+  "analog": null,
+  "bpc": 3.4066,
+  "ppl": 10.604,
+  "acc": 0.2053,
+  "rate_emitted": 1.0,
+  "rate_state": 1.0,
+  "energy_pJ_per_token": 398028.8,
+  "energy_pJ_per_token_conservative": 398028.8,
+  "energy_terms_pJ": {
+    "W_in_MAC": 75366.4,
+    "state_MAC": 1177.6,
+    "W_mix_MAC": 301465.6,
+    "W_out_MAC": 20019.2
+  }
+}

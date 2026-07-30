@@ -1,0 +1,28 @@
+{
+  "variant": "spikestate",
+  "task": "copy",
+  "seed": 0,
+  "params": 87889,
+  "vocab": 17,
+  "E": 64,
+  "H": 256,
+  "L": 33,
+  "epochs": 6,
+  "lr": 0.002,
+  "lam": 0.0,
+  "target": null,
+  "analog": null,
+  "bpc": 4.0088,
+  "ppl": 16.098,
+  "acc": 0.065,
+  "rate_emitted": 0.4444,
+  "rate_state": 0.4444,
+  "energy_pJ_per_token": 104494.542,
+  "energy_pJ_per_token_conservative": 104494.542,
+  "energy_terms_pJ": {
+    "W_in_MAC": 75366.4,
+    "state_MAC": 1177.6,
+    "W_mix_AC_at_rs": 26210.032,
+    "W_out_AC_at_rs": 1740.5099
+  }
+}
