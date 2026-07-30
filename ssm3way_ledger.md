@@ -1318,3 +1318,16 @@ for the principle, but a regularizer-strength observation, not a datapath one.
 **Still pending in this row:** the M=32 (L=65) column for both arms, plus
 `L33_s2_b6`, which will take the quantization contrast to 3 seeds and say whether the
 noise benefit also attenuates as memory load doubles. Table: `python agg_copy.py 30`.
+
+### 2026-07-30 ~22:10Z — copy-side regularization control: M=32 column complete (3 seeds), and the M=16 quantizer arm reaches 3 seeds
+
+Row state: 9/12 cells on disk; the three `digital_copy_L65_s*_reg_n0.02_b6_ep30` cells (quantizer arm at M=32) are still training on GPUs 0/2/7. Table via `python agg_copy.py 30`.
+
+**Result 1 — pre-registered branch (A) confirmed at a SECOND memory load, and the noise benefit GROWS with load.**
+Copy ep30/n80k, H=256, chance acc 0.0625. M=32: plain digital 0.3150±0.0031 / bpc 2.8928±0.0127; **+σ=0.02 → acc 0.3425±0.0027 / bpc 2.6778±0.0159, paired Δbpc −0.2150±0.0106 (all 3 seeds negative)**. Compare M=16: −0.1499±0.0333. So training-time state noise helps *more* at the harder load (−0.215 vs −0.150), and both are still smaller than char-LM's −0.3091±0.0244. Earlier ledger reading "the noise benefit is ~2× smaller on copy than char-LM" must be softened to **1.4× smaller at M=32** — the trend across loads runs *toward* the char-LM value, which weakens (does not kill) that weak supporting argument for the datapath-degradation principle.
+
+**Consequence — copy margins at M=32 recomputed against the regularized reference** (reg digital acc 0.3425 ⇒ above-chance margin 0.2800): spikeout **0.46 → 0.42**, analog θ=0.2 **0.31 → 0.28**, spikestate **0.00 → 0.00**. Same 3–5 point shrink as M=16 (0.92→0.87 / 0.53→0.50 / 0.08→0.074); **the state-fidelity ordering and the workload dichotomy are unaffected in direction and magnitude at both loads.** All published copy margin-kept figures remain upper bounds; the correction is now measured, not assumed, at M=16 and M=32.
+
+**Result 2 — the post-hoc quantizer contrast is now at n=3 at M=16 and it strengthens.** `dig_bits=6` is the only *inference-time* state degradation in this control (verified in `ssm3way.py:120-131`: additive noise is gated by `if self.training`, the quantizer is not). At matched σ=0.02, the quantizer costs **+0.3687 bpc on copy** (arm Δbpc +0.2188±0.0514 vs +σ-only −0.1499±0.0333, n=3 each; the earlier n=2 estimate was +0.387) against **−0.002 bpc on char-LM (nothing)**. Same degradation, ~0.37 bpc apart across the two workloads — the datapath-degradation principle's prediction, out of sample. Its state footprint is visible: `rate_state` 1.0000 → 0.971 at M=16 as the quantizer zeroes small units. Honesty label unchanged: **post-hoc identified, mechanistically motivated, NOT a pre-registered win** — the pre-registration bound its prediction to the wrong arm.
+
+**Still pending:** the M=32 quantizer cells (running). Prediction, recorded now: if the principle holds, the quantizer penalty should be *at least* as large at M=32 as at M=16 (+0.37), since precise retention of 32 symbols is more sensitive to state precision than 16. A smaller penalty at M=32 would be evidence against.
