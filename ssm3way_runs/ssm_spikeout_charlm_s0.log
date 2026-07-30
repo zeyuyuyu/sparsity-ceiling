@@ -1,0 +1,31 @@
+[spikeout/charlm] dev cuda:5 vocab 284 params 173,596 train 8047 seqs
+[spikeout] ep1/6 loss 3.1646 16.0s
+[spikeout] ep2/6 loss 3.1254 16.6s
+[spikeout] ep3/6 loss 3.0962 16.7s
+[spikeout] ep4/6 loss 3.0621 16.1s
+[spikeout] ep5/6 loss 3.0399 15.6s
+[spikeout] ep6/6 loss 3.0321 15.2s
+
+===== SSM 4-WAY CELL =====
+variant                           : spikeout
+task                              : charlm
+seed                              : 0
+params                            : 173596
+vocab                             : 284
+E                                 : 64
+H                                 : 256
+L                                 : 128
+epochs                            : 6
+lr                                : 0.002
+lam                               : 0.0
+target                            : None
+analog                            : None
+bpc                               : 4.3867
+ppl                               : 20.918
+acc                               : 0.1993
+rate_emitted                      : 0.4108
+rate_state                        : 1.0
+energy_pJ_per_token               : 435211.042
+energy_pJ_per_token_conservative  : 435211.042
+energy_terms_pJ                   : {'W_in_MAC': 75366.4, 'state_MAC': 1177.6, 'W_mix_AC_at_rz': 24228.6416, 'W_out_MAC': 334438.4}
+saved -> ssm3way_runs/spikeout_charlm_s0.json

@@ -1,0 +1,28 @@
+{
+  "variant": "spikeout",
+  "task": "charlm",
+  "seed": 0,
+  "params": 173596,
+  "vocab": 284,
+  "E": 64,
+  "H": 256,
+  "L": 128,
+  "epochs": 6,
+  "lr": 0.002,
+  "lam": 0.0,
+  "target": null,
+  "analog": null,
+  "bpc": 4.3867,
+  "ppl": 20.918,
+  "acc": 0.1993,
+  "rate_emitted": 0.4108,
+  "rate_state": 1.0,
+  "energy_pJ_per_token": 435211.042,
+  "energy_pJ_per_token_conservative": 435211.042,
+  "energy_terms_pJ": {
+    "W_in_MAC": 75366.4,
+    "state_MAC": 1177.6,
+    "W_mix_AC_at_rz": 24228.6416,
+    "W_out_MAC": 334438.4
+  }
+}

@@ -1,0 +1,31 @@
+[spikestate/charlm] dev cuda:3 vocab 284 params 173,596 train 8047 seqs
+[spikestate] ep1/6 loss 2.9780 17.2s
+[spikestate] ep2/6 loss 2.7452 17.1s
+[spikestate] ep3/6 loss 2.5893 17.7s
+[spikestate] ep4/6 loss 2.5794 17.2s
+[spikestate] ep5/6 loss 2.4930 15.5s
+[spikestate] ep6/6 loss 2.4878 15.1s
+
+===== SSM 4-WAY CELL =====
+variant                           : spikestate
+task                              : charlm
+seed                              : 1
+params                            : 173596
+vocab                             : 284
+E                                 : 64
+H                                 : 256
+L                                 : 128
+epochs                            : 6
+lr                                : 0.002
+lam                               : 0.0
+target                            : None
+analog                            : None
+bpc                               : 3.6267
+ppl                               : 12.352
+acc                               : 0.3013
+rate_emitted                      : 0.6268
+rate_state                        : 0.6268
+energy_pJ_per_token               : 154533.294
+energy_pJ_per_token_conservative  : 154533.294
+energy_terms_pJ                   : {'W_in_MAC': 75366.4, 'state_MAC': 1177.6, 'W_mix_AC_at_rs': 36972.7021, 'W_out_AC_at_rs': 41016.5914}
+saved -> ssm3way_runs/spikestate_charlm_s1.json

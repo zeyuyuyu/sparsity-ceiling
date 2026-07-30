@@ -6,3 +6,7 @@ cache/
 *.json
 *.log
 smoke.json
+
+# results ledger artifacts (small JSON/log per run) ARE tracked
+!ssm3way_runs/*.json
+!ssm3way_runs/*.log

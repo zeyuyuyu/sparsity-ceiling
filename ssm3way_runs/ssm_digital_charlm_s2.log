@@ -1,0 +1,31 @@
+[digital/charlm] dev cuda:4 vocab 284 params 173,596 train 8047 seqs
+[digital] ep1/6 loss 2.7840 11.0s
+[digital] ep2/6 loss 2.6488 10.9s
+[digital] ep3/6 loss 2.5164 10.6s
+[digital] ep4/6 loss 2.4113 10.9s
+[digital] ep5/6 loss 2.3685 11.1s
+[digital] ep6/6 loss 2.2842 10.8s
+
+===== SSM 4-WAY CELL =====
+variant                           : digital
+task                              : charlm
+seed                              : 2
+params                            : 173596
+vocab                             : 284
+E                                 : 64
+H                                 : 256
+L                                 : 128
+epochs                            : 6
+lr                                : 0.002
+lam                               : 0.0
+target                            : None
+analog                            : None
+bpc                               : 3.3573
+ppl                               : 10.248
+acc                               : 0.3415
+rate_emitted                      : 1.0
+rate_state                        : 1.0
+energy_pJ_per_token               : 712448.0
+energy_pJ_per_token_conservative  : 712448.0
+energy_terms_pJ                   : {'W_in_MAC': 75366.4, 'state_MAC': 1177.6, 'W_mix_MAC': 301465.6, 'W_out_MAC': 334438.4}
+saved -> ssm3way_runs/digital_charlm_s2.json

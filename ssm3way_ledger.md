@@ -40,12 +40,15 @@ copy — explicit, tunable memory load `M`, which is what the bound is stated in
 
 | cell | state |
 |------|-------|
-| implementation, all 4 variants | **DONE** 2026-07-30 — CPU smoke test passes end-to-end for all four |
-| digital × charlm | not run |
-| spikeout × charlm | not run |
-| analog × charlm | not run |
-| spikestate × charlm | not run |
-| all 4 × copy | not run |
+| implementation, all 4 variants | **DONE** 2026-07-30 |
+| digital × charlm | **DONE, 3 seeds** (0,1,2) |
+| spikeout × charlm | **DONE, 3 seeds** (0,1,2) |
+| analog × charlm | **DONE, 3 seeds** at theta=1.0; theta sweep 0.1/0.25/0.5 at seed 0 only |
+| spikestate × charlm | **DONE, 3 seeds** (0,1,2) |
+| all 4 × copy | not run — NEXT (the bound is stated in memory load M, which charlm does not expose) |
+
+(The GPU-availability note just below is from an earlier tick and is stale: all 8
+A800s freed at 09:50Z and the whole charlm row ran there.)
 
 **GPU availability 2026-07-30 ~05:40Z: zero idle GPUs** — all 8 A800s held by
 another user (`haomo`, 8× `ifeval_shard.py`, ~17 GB / 94-100% util each). No runs
@@ -176,3 +179,68 @@ The sweep is the empirical demonstration of that scope limit.
   bpc 3.3 is a weaker statement than quality-matching at bpc 2.6 would be.
 - theta=1.0 with rail=4.0 means events fire on ~1/4-rail state changes; worth checking the
   interaction with rail/bits rather than treating theta as independent.
+
+
+## THREE-SEED RESULTS — charlm row complete (2026-07-30, seeds 0/1/2, A800 GPUs 0-7)
+
+Seeds 1 and 2 for all four variants finished. Regenerate this table any time with
+`python agg_ssm3way.py charlm` (pure re-read of the per-run JSON, no retraining).
+Config identical across all cells: E=64 H=256 L=128 bs=64 epochs=6 lr=2e-3 lam=0
+(no sparsity regularizer, so activity rates are NATURAL), vocab 284,
+params 173,596 exactly matched; analog noise=0.02 bits=6 rail=4.0.
+
+| variant | n seeds | bpc | acc | rate_emitted | rate_state | E pJ/tok (cons) |
+|---|---|---|---|---|---|---|
+| `digital` | 3 | 3.3429 +- 0.0221 | 0.3441 +- 0.0042 | 1.0000 | 1.0000 | 712,448 |
+| `spikeout` | 3 | 4.3978 +- 0.0292 | 0.1978 +- 0.0017 | 0.3691 +- 0.0378 | **1.0000 +- 0.0000** | 432,752 +- 2,230 |
+| `analog` th=1.0 | 3 | 3.3595 +- 0.0273 | 0.3477 +- 0.0043 | **0.2664 +- 0.0152** | 0.9919 +- 0.0007 | 490,330 +- 4,594 |
+| `spikestate` (floor control) | 3 | 3.6205 +- 0.0130 | 0.3016 +- 0.0007 | **0.6453 +- 0.0202** | 0.6453 +- 0.0202 | 156,835 +- 2,509 |
+| `analog` th=0.1 / 0.25 / 0.5 | 1 | 3.1804 / 3.2112 / 3.2362 | — | 0.7224 / 0.5570 / 0.4851 | ~0.993 | 627,811 / 577,941 / 556,265 |
+
+Paired per-seed bpc delta vs `digital` at the same seed (a stronger test than
+comparing means, since seed variance is shared):
+
+| variant | per-seed delta | mean | sd | same sign in all 3? |
+|---|---|---|---|---|
+| `spikeout` | +1.0692 / +1.0769 / +1.0184 | **+1.0548** | 0.0318 | yes |
+| `analog` th=1.0 | +0.0115 / +0.0140 / +0.0243 | **+0.0166** | 0.0068 | yes |
+| `spikestate` | +0.2881 / +0.2727 / +0.2719 | **+0.2776** | 0.0091 | yes |
+
+### Verdict at 3 seeds: the hypothesis HOLDS, with one honest correction
+
+1. **Confirmed.** The analog-state SSM runs at **0.266 +- 0.015 event activity**
+   (~3.8x less communication than dense) while the spiking-STATE control with
+   identical parameters cannot get below **0.645 +- 0.020**. The two are 0.38 apart
+   against a seed sd of ~0.02, so this separation is not seed noise.
+2. **Correction to the seed-0 story: analog is NOT literally free.** The paired
+   test shows a small but perfectly sign-consistent cost, **+0.017 bpc (0.5%) in
+   all three seeds**. The earlier single-seed reading called this "within noise";
+   paired, it is a real penalty — it is just **17x smaller** than the spikestate
+   penalty (+0.278 bpc, also 3/3 consistent). So the defensible claim is
+   "quality-matched to within 0.5%", NOT "free", and NOT "better than digital"
+   (the seed-0 theta=0.1 run that beat digital did not generalize into a claim;
+   at theta=1.0 across seeds analog is slightly behind).
+3. **spikeout (SPikE-SSM-style) reproduces its signature exactly and is the worst
+   variant.** `rate_state` is **1.0000 +- 0.0000** across all three seeds — the
+   sparsity is output-only, the recurrent state stays fully dense — and it costs
+   **+1.05 bpc**. At this budget, LIF-ing the output is the most expensive place to
+   put the nonlinearity. Honest negative for that family at this scale.
+4. **The floor control behaves as the bound predicts** (0.645 activity, above 0.5,
+   reached with zero pressure to be dense, lam=0), and it remains the only variant
+   inside the bound scope.
+
+### Caveats unchanged and still binding
+- **The pJ proxy still ranks spikestate best** (157k vs analog 490k pJ/token),
+  because analog pays MAC-priced `W_in`/`W_out` and only gets event pricing on
+  `W_mix`. The finding is activity-vs-quality; **pJ is NOT an analog win yet** and
+  must not be presented as one. Fixing it is a datapath design change, not a rerun.
+- One task, one width, 6 epochs, absolute bpc low (ANN reference 2.62).
+  Quality-matching at bpc 3.34 is a weaker statement than at bpc 2.6.
+- theta swept at seed 0 only; only theta=1.0 has 3 seeds.
+- theta interacts with rail/bits (at theta=1.0 events fire on ~1/4-rail changes);
+  not yet disentangled.
+
+### NEXT
+`copy` task at 2-3 memory loads M for all 4 variants — the bound is stated in M and
+charlm does not expose it. That is the experiment that tests the bound M-dependence
+across variants, rather than only its scope.

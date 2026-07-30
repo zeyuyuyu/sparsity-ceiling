@@ -1,0 +1,31 @@
+[analog/charlm] dev cuda:4 vocab 284 params 173,596 train 8047 seqs
+[analog] ep1/6 loss 2.4874 13.0s
+[analog] ep2/6 loss 2.3321 12.6s
+[analog] ep3/6 loss 2.2297 12.6s
+[analog] ep4/6 loss 2.2078 12.5s
+[analog] ep5/6 loss 2.2142 12.6s
+[analog] ep6/6 loss 2.1193 13.0s
+
+===== SSM 4-WAY CELL =====
+variant                           : analog
+task                              : charlm
+seed                              : 0
+params                            : 173596
+vocab                             : 284
+E                                 : 64
+H                                 : 256
+L                                 : 128
+epochs                            : 6
+lr                                : 0.002
+lam                               : 0.0
+target                            : None
+analog                            : {'theta': 0.25, 'noise': 0.02, 'bits': 6, 'rail': 4.0}
+bpc                               : 3.2112
+ppl                               : 9.261
+acc                               : 0.3743
+rate_emitted                      : 0.557
+rate_state                        : 0.9935
+energy_pJ_per_token               : 442886.252
+energy_pJ_per_token_conservative  : 577940.578
+energy_terms_pJ                   : {'W_in_MAC': 75366.4, 'state_analog_AC': 230.4, 'W_mix_event_at_rz': 32851.0522, 'W_out_MAC': 334438.4}
+saved -> ssm3way_runs/analog_charlm_s0_theta0.25.json
