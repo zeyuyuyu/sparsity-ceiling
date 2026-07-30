@@ -671,3 +671,32 @@ ep30 M=64 column).
    scale** — which is a real, reportable negative, not a failed experiment.
 
 No results yet.
+
+### 2026-07-30 ~18:10Z — shrink-H row: the VALIDITY GATE PASSES at the binding H, and it passes surprisingly well
+
+Status: ep30 copy row still running (M=64 column, 6 jobs on GPUs 0/1/3/5/7 + shrink-H on 4).
+GPUs 2 and 6 freed (their row chains reported CHAIN DONE) and were handed to two new
+shrink-H workers; the lock queue claimed distinct cells (`digital_copy_L33_s1_H64_ep30`
+on gpu2, `spikestate_copy_L33_s1_H64_ep30` on gpu6) with no duplicate training.
+3 shrink-H workers now live (gpu 4/2/6).
+
+**First shrink-H cell (`digital_copy_L33_s0_H64_ep30`): acc 0.5556 / bpc 1.8478**, vs
+chance 0.0625 / 4.000. Pre-registered criterion (i) — "the test only counts at an H where
+the *digital* reference still learns copy well above chance" — is therefore **SATISFIED at
+H=64, the single binding cell** (predicted floor 0.500 under the corrected `M·log2K/H`
+reading). The shrink-H row is a valid experiment, not a capacity-limited one.
+
+**Stronger than the gate required, and worth noting on its own:** H=64 digital uses only
+**10,513 params** (vs 87,889 at H=256) — a 8.4x smaller net — yet retains most of the
+baseline's skill (0.556 vs 0.6302+-0.0106 at H=256, n=1 vs n=3). So copy at M=16 is not
+width-limited in the 64..256 range, which is exactly what makes shrinking H the right lever
+for a bound test: it moves `M·log2K/H` from 0.0026 to 1.0 (a 385x change in the predicted
+floor) while barely moving what the task demands of the digital reference. Raising M could
+not do this — it killed retention (spikestate is at chance by M=32).
+
+Still pending and still the whole point: the matched `spikestate` H=64 cells. Criterion (ii)
+confirmation = state activity at/above 0.500 AND rising as H shrinks across
+H=256/128/96/64 (measured H=256 = 0.4960+-0.0106); criterion (iii) refutation = flat ~0.5
+or falling while nets still learn; criterion (iv) most-likely = spikestate retention dies
+before the floor binds -> verdict "not empirically testable with this architecture", a
+reportable negative. Nothing about the gate passing changes those criteria.
