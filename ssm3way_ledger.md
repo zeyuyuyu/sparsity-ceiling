@@ -1411,3 +1411,19 @@ finding from this tick: **the arXiv `sparsity_ceiling.tex` (local, `/home/zeyu/n
 — `grep -ci "ssm\|analog"` returns 0. So "restate the char-LM headline in paper.tex" was mis-scoped in earlier ticks:
 there is no SSM section to restate. The SSM×neuromorphic arm is a **separate second paper**, not a v2 edit, and that
 scoping decision is the next real writeup step.
+
+## 2026-07-31 tick — WRITEUP STEP 3: second paper DECIDED + skeleton drafted (zero-GPU)
+
+No jobs running, all 8 A800s idle, no data cells remain (empirical arm closed at 48510c8).
+Per the scoping finding in the previous tick (arXiv paper.tex has zero SSM content), the SSM×neuromorphic
+arm is a STANDALONE SECOND PAPER. This tick created `paper2/skeleton.md` in the repo:
+
+- Working title: "Degrade What the Task Ignores: Workload-Conditional Datapaths for State-Space Models
+  on Neuromorphic Hardware". Target arXiv (cs.NE x cs.LG), 6-8 pp, single author, cites paper 1.
+- Central claim = the datapath-degradation principle; 10-section plan mapping every section to
+  published ledger evidence by commit hash (E1-E6), nothing re-derived.
+- Includes a CLAIMS LEDGER: forbidden sentences ("analog beats digital", "bound confirmed", "190x")
+  and mandatory labels (quantizer contrast = post-hoc; margins = vs regularized reference) are in the
+  skeleton itself so later drafting ticks cannot drift.
+- Figures/tables plan keyed to agg_charlm.py / agg_copy.py / plot_ssm3way.py outputs.
+- Next: draft sections 3+4 (protocol + char-LM), then 5+6, then 7 (reuse memo v3 section 8 language).
