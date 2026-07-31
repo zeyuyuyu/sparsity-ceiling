@@ -28,9 +28,8 @@ rather than a proposal. The open question, and ours, is what each route costs.
 \subsection{The three datapath routes}
 
 \paragraph{(a) Digital SSMs on digital fabric.} The reference point: run the exact linear
-recurrence in a digital datapath, optionally quantized. QS4D~\citep{qs4d} studies quantization of
-diagonal SSMs for exactly this deployment target. Our \texttt{digital} variant is this route at
-full precision, and it is the baseline every margin in this paper is measured against.
+recurrence in a digital datapath, optionally quantized. Our \texttt{digital} variant is this
+route at full precision, and it is the baseline every margin in this paper is measured against.
 
 \paragraph{(b) Continuous state, spiking output.} The current ``spiking SSM'' line keeps the
 linear state at full precision and applies a spiking nonlinearity only to what leaves the
@@ -48,8 +47,10 @@ every memory load --- all of its sparsity is in the output, none of it in the st
 the device's native short-term-memory relaxation as the state decay --- the exponential
 relaxation of the device is $e^{At}$, so there is no discretization mismatch to manage, and
 $Ax + Bu$ is an in-memory matrix--vector multiply. Related analog compute-in-memory work
-addresses the robustness side of the same substrate~\citep{imssa,hpd}, and LMU-on-Braindrop is
-the earlier precedent. We treat this route in simulation, with the analog storage element's
+approaches the same substrate from adjacent angles: QS4D~\citep{qs4d} trains diagonal S4D with
+quantization-aware training for deployment on tantalum-oxide memristive crossbars and reports
+that the training itself confers robustness to analog noise, while IMSSA and HPD address the
+robustness side directly~\citep{imssa,hpd}; LMU-on-Braindrop is the earlier precedent. We treat this route in simulation, with the analog storage element's
 imperfections modelled explicitly (rails, additive state noise, finite state precision) and
 communication by send-on-delta graded events; \S\ref{sec:protocol} states exactly what is and is
 not modelled. We do not quote CIM-SSM's reported numbers, which are behind a paywall we could

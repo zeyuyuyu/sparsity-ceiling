@@ -1820,3 +1820,16 @@ paper 2 compiles clean with a fully-asserted 9-entry bibliography, memo v3 is se
 and speaker notes are post-retraction. Open decisions that are the USER'S, not a tick's:
 send memo v3 to Imam; decide whether/when to put paper 2 on arXiv. No data cells — do not
 launch training. Infra: arXiv API over plain HTTP returns empty from this box — use HTTPS.
+
+## 2026-08-01 tick — reference verification: QS4D read in full; sec02 route-(a) classification CORRECTED (zero-GPU)
+
+State: GPUs 0-6 all idle (1 MiB, 0-2% util; GPU7 still absent from bus), zero ssm3way procs; empirical arm closed. This tick advanced the one remaining pre-submission item: full-read verification of the deliberately-unasserted bib entries (qs4d/imssa/hpd), one per tick.
+
+**QS4D (arXiv:2507.06079; Siegel, Yang, Bouhadjar, Fabre, Neftci, Strachan) read in full (arXiv full text).** Verified:
+- Quantizes **S4D with diagonal A** ("we focus on the S4D model with a diagonalized A matrix"; original S4 in supplementary) — the "diagonal SSMs" half of our old sentence was correct.
+- **BUT its deployment target is memristive ANALOG in-memory compute, not digital fabric**: tantalum-oxide resistive devices co-integrated with 180 nm CMOS; QAT is motivated by AIMC and shown to confer robustness to analog noise and enable structural pruning; sCIFAR10 reaches 6-bit homogeneous QAT vs 10-bit post-training quantization at the 1% error threshold. Fully non-spiking. Same group and substrate as IMSSA.
+- Therefore sec02's route-(a) sentence ("QS4D studies quantization of diagonal SSMs for exactly this deployment target [digital datapath]") **misclassified it**.
+
+**Fix (this commit):** sec02 route (a) now carries no exemplar citation (it is the reference point and needs none); QS4D moved into the route-(c) CIM-adjacent sentence with the verified description; refs.bib header + qs4d entry comment updated (read-in-full 2026-08-01, correction recorded); memo v3 §3(a), §3(c) and its reading list corrected identically (anchor-checked patch, aborts on miss). Local rebuild verified: exit 0, 0 overfull, 0 undefined cites/refs, 13 pp.
+
+**No experimental number changes anywhere** — the correction is citation placement and description only. Remaining unread refs: **imssa (2412.20215), hpd (2508.11935)** — same treatment, one per tick, before any arXiv submission of paper 2.

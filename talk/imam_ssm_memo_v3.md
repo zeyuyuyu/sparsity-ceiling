@@ -36,13 +36,13 @@ Also: my own firing-floor bound from *The Sparsity Ceiling* is **not empirically
 
 ## 3. Three ways to put an SSM on neuromorphic  *(taxonomy, unchanged)*
 
-**(a) Digital SSM on digital fabric** — quantized S4D. *QS4D (arXiv:2507.06079)*.
+**(a) Digital SSM on digital fabric** — the reference point: the exact recurrence in a digital datapath, optionally quantized. *(Correction 2026-08-01: QS4D (arXiv:2507.06079), previously listed here as the (a) exemplar, was read in full — its deployment target is memristive **analog** in-memory compute (TaOx crossbars co-integrated with 180 nm CMOS), QAT of diagonal S4D, non-spiking, with QAT shown to confer robustness to analog noise. It belongs with the CIM work under (c).)*
 
 **(b) Continuous linear state + spiking/sparse *output*** — the current "spiking SSM" line. **SPikE-SSM** (read in full) keeps the state `h_t` **continuous** and spikes only the output nonlinearity (refractory-LIF on S4D). Its reported firing is *output* sparsity (LRA ~8%, WikiText 24.5%) — **not** a state-carrying firing floor. Cost: recall gap (WikiText ppl 33.2 vs S4's 21.0).
 
 **(c) Native analog SSM — the non-spiking route you asked about** — device physics *is* the dynamics:
 - **CIM-SSM (Zhang, …, Wei D. Lu; arXiv:2511.13912, Nat. Commun. 2026):** non-spiking continuous diagonal SSM in a memristor crossbar; the device's native short-term-memory relaxation physically realizes the state decay. *(numbers not verified — paywalled.)*
-- Corroborating: **IMSSA (2412.20215)**, **HPD (2508.11935)** for analog-CIM robustness, and **LMU-on-Braindrop**.
+- Corroborating: **QS4D (2507.06079)** — QAT of diagonal S4D for TaOx memristive crossbars; QAT confers analog-noise robustness (read in full 2026-08-01; moved here from (a)) — plus **IMSSA (2412.20215)**, **HPD (2508.11935)** for analog-CIM robustness, and **LMU-on-Braindrop**.
 - **Mechanism:** the memristor's exponential relaxation *is* `e^{At}`. No discretization mismatch; in-memory MVM for `Ax+Bu`.
 
 ## 4. What I actually built and measured
@@ -143,7 +143,8 @@ The bound `ρ ≥ H_b⁻¹(M·log₂K / H)` prices a recurrent net that carries 
 - ✓ Voelker, Kajić, Eliasmith. *Legendre Memory Units.* NeurIPS 2019. (+ Braindrop, Neckar…Boahen, Proc. IEEE 2019; Loihi, Davies…Imam, IEEE Micro 2018.)
 - ✓ Zhong et al. *SPikE-SSM.* arXiv:2410.17268, 2024.
 - ✓/□ Zhang…Wei D. Lu. *Compute-in-Memory Implementation of SSMs for Event Sequence Processing.* arXiv:2511.13912 / Nat. Commun. 2026. *(abstract + secondary sources; paywalled.)*
-- □ IMSSA (2412.20215); QS4D (2507.06079); HPD (2508.11935) — *identified via search, not read in full.*
+- ✓ QS4D (2507.06079) — *read in full 2026-08-01; reclassified route (a) → CIM-adjacent (c): deployment target is memristive analog CIM, not digital fabric.*
+- □ IMSSA (2412.20215); HPD (2508.11935) — *identified via search, not read in full.*
 - □ Mitrokhin et al. *Sci. Robotics* 2019 (aaw6736) — *paywalled.*
 - ~ Izhikevich, *Spiking Manifesto* (2512.11843); ArrowFlow (2604.04087) — *abstract-level.*
 - Kanerva, *Sparse Distributed Memory*; Eliasmith, *NEF*.

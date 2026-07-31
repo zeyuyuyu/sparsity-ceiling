@@ -2,9 +2,10 @@
 %   paper1, s4, s4d, lmu, spikessm, cimssm, qs4d, imssa, hpd
 %
 % METADATA HONESTY: the memo's reading list (talk/imam_ssm_memo_v3.md, "References") records
-% which of these were read in full. qs4d/imssa/hpd were identified via search and NOT read in
+% which of these were read in full. imssa/hpd were identified via search and NOT read in
 % full; their title/author metadata was verified against the arXiv API listing on 2026-07-31
 % (the notes say so), but no content claims beyond sec02's route classification rest on them.
+% qs4d WAS read in full on 2026-08-01 — see its entry comment for the resulting correction.
 
 @misc{paper1,
   author       = {Zeyu Wang},
@@ -54,8 +55,10 @@
                   quoted in this paper --- consulted at abstract level only (paywalled)}
 }
 
-% Metadata verified against the arXiv API listing 2026-07-31; not read in full
-% (see memo v3 reading list) — cited only for route classification in sec02.
+% Read in full 2026-08-01 (arXiv full text). CORRECTED CLASSIFICATION: its deployment target
+% is memristive ANALOG in-memory compute (TaOx crossbars co-integrated with 180nm CMOS), not
+% digital fabric; QAT of diagonal S4D, non-spiking, and QAT is shown to confer robustness to
+% analog noise. sec02 accordingly cites it with the CIM-adjacent work, not as route (a).
 @misc{qs4d,
   author       = {Sebastian Siegel and Ming-Jay Yang and Younes Bouhadjar and Maxime Fabre
                   and Emre Neftci and John Paul Strachan},
