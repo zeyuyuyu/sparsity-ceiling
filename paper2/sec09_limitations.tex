@@ -1,0 +1,67 @@
+% Paper 2, Section 9 — Limitations (skeleton §9; consolidates caveats stated locally in
+% §3.5, §4.3, §5.3, §6.3, §7.4, §8.3 so a reviewer finds them in one place).
+% Numbers verified against ledger entries bb79f7f (noise benefit −0.309, wd zero),
+% 48510c8 (quantizer contrast at 3 seeds), 471f113 (bound-arm scale), 750b1bb (M=64
+% validity limit). CLAIMS DISCIPLINE — forbidden here as everywhere: "analog beats
+% digital" (retracted); "bound confirmed"; copy margins vs the PLAIN reference; any pJ
+% figure presented as a silicon measurement.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\paragraph{Simulation, not silicon.}
+Every energy figure in this paper is the 45\,nm Horowitz MAC/AC proxy applied to counted
+operations, not a measurement of any device. The proxy omits costs that fall specifically
+on the analog route: the analog state is dense (state density $0.994$), and each hidden
+unit implies an analog storage element and a converter that MAC/AC accounting does not
+price. Matching variants on \emph{emitted} rate therefore matches wire traffic, not
+state-holding cost (Section~\ref{sec:metrics}). The $1.60\times$ figure of
+Section~\ref{sec:charlm-claim} is a claim about communication and arithmetic under the
+proxy, and could shrink or invert once storage and conversion are priced on real silicon;
+measured Loihi-2/SpiNNaker-2-class energy is the direct next step.
+
+\paragraph{Small scale, short schedules.}
+The char-LM models have $173{,}596$ parameters trained for six epochs; the copy models
+span $10.5$k--$87.9$k parameters at thirty epochs. Effects that are
+regularization-mediated at this scale may attenuate at larger scale or longer schedules.
+This cuts in both directions: the training-time noise benefit on the digital baseline
+($-0.309$ bpc, Section~\ref{sec:charlm-control}) is exactly the kind of small-model,
+short-schedule effect that typically shrinks as models grow --- but the analog route's
+$+0.160$ bpc gating cost is measured against that same baseline, so the surviving
+tradeoff could move in either direction at scale. Absolute task quality is far from
+state of the art by construction (a one-layer diagonal SSM), which is the price of the
+parameter-matched protocol.
+
+\paragraph{Two tasks, one out-of-sample test.}
+The ranking inversion rests on one statistical task (char-level WikiText) and one
+precise-recall task (synthetic copy). The datapath-degradation principle was tested
+out of sample exactly once --- the quantizer contrast of
+Section~\ref{sec:principle-quantizer}, $-0.002$ bpc on char-LM versus $+0.369$/$+0.385$
+bpc on copy at $M{=}16$/$32$ --- and that test is post hoc: the pre-registered arm
+turned out to be a training-time-only regularizer and could not test the principle as
+designed. The genuinely pre-registered element is the $M{=}32$ floor
+($\geq{+}0.37$ bpc, met). A designed, pre-registered test on a third workload family
+(e.g.\ associative recall with distractors, or a streaming perception task) is the
+obvious strengthening experiment.
+
+\paragraph{The regularized reference is not an exhaustively tuned one.}
+All corrected copy margins are quoted against a digital baseline given training-time
+state noise at $\sigma{=}0.02$ --- the dose at which the char-LM benefit saturated ---
+not against a baseline tuned over a broad regularizer grid. Weight decay was worth
+exactly zero ($+0.005\pm0.011$ bpc), which narrows the mechanism but does not exhaust
+the space; a stronger baseline would shrink every neuromorphic margin further, and no
+result in this paper moves in the neuromorphic routes' favour if the baseline improves.
+
+\paragraph{Scope of the bound-arm negative.}
+Section~\ref{sec:bound} shows the firing-floor bound's width prediction fails on
+\emph{this} architecture at \emph{this} scale --- a one-layer LIF-state SSM whose copy
+failure is an optimization pathology. That is a tested scope limit, not a general
+refutation: an architecture that actually trains to retain $M\log_2 K$ bits in a spiking
+state could still exhibit the floor. We could not construct one, and report that fact
+rather than the bound's failure in general.
+
+\paragraph{Validity limit at the heaviest load.}
+The copy $M{=}64$ column is capacity-limited for every variant (the digital reference
+itself is only $2.7\times$ chance) and has no regularized reference, so it supports only
+the chance-level reproduction of the spiking-state result; the load-scaling claims of
+Section~\ref{sec:copy-load} are scoped to $M{=}16\!\to\!32$.

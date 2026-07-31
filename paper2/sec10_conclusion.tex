@@ -1,0 +1,42 @@
+% Paper 2, Section 10 — Conclusion (skeleton §10: one paragraph-scale close; the fork
+% answer is workload-conditional; the principle as a designer's rule; the bound survives
+% as design intuition, not validated theory).
+% CLAIMS DISCIPLINE — forbidden here as everywhere: "analog beats digital" (retracted);
+% "bound confirmed" / contrapositive claims; uncorrected copy margins; pJ as silicon.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+The question this paper set out to answer --- which datapath should carry a state-space
+model on neuromorphic hardware --- turns out not to have a single answer, and the shape
+of the non-answer is the contribution. Under a parameter-matched protocol where only the
+position of the nonlinearity moves, the three neuromorphic routes reverse their ranking
+between a statistical sequence task and a precise-recall task, at matched communication
+rates and three seeds on both sides. The regularity behind the reversal is the
+datapath-degradation principle: a route is cheap exactly when it degrades the part of the
+computation the workload does not depend on. Statistical workloads need an exact graded
+output and tolerate a lossy analog state, where the analog route buys a $1.60\times$
+proxy-energy reduction for a $+0.160$ bpc (5.3\%) quality cost against a properly
+regularized digital baseline. Precise-recall workloads need an exact state and tolerate a
+spiked output --- and carrying the state itself in spikes is not a degraded option there
+but a non-option, landing at exactly chance at $M{=}32$ and $M{=}64$ while being the
+cheapest cell in the table.
+
+For a designer, the principle converts into a rule that can be applied before any
+simulation: identify which side of the datapath --- recurrent state or emitted output ---
+the workload's loss actually depends on, and spend the exactness budget there. The
+co-design constraints that come with the analog route are equally concrete: the ADC step,
+not the send-on-delta threshold, floors the event rate, so event sparsity is purchased
+with converter bits rather than a free algorithmic knob, and the threshold does not
+transfer across workloads.
+
+The firing-floor bound that motivated this study ends in a different place than intended.
+Across a $12\times$ swing in its predicted floor, measured spiking-state activity moved
+the other way, and accuracy improved as certified capacity shrank; the bound is not
+empirically validated in either direction at this scale. It survives as design intuition
+--- the reason to \emph{expect} that a compressed state should not be carried in spikes
+--- while the rule itself now rests on the direct measurements of
+Section~\ref{sec:copy}: the bound was the reason to expect that result; it is not the
+reason to believe it. What would move this from simulation to engineering is measured
+energy on real neuromorphic silicon, with the analog state's storage and conversion
+priced --- the one number this paper cannot supply and the next one should.

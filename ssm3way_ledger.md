@@ -1620,3 +1620,14 @@ introduced in §1/§2; §3–§8 cite only `paper1`. So `refs.bib` is a 9-entry 
 `refs.bib` (9 keys) and `main.tex` assembly, then a LaTeX build **locally on /home/zeyu** (the
 server has no latex). Deck regeneration (`talk/beyond_attention_paradigms.pptx` per the edit list
 in `talk/speaker_notes.md`) still open. **No data cells remain — do not launch training.**
+
+
+## 2026-07-31 tick — PAPER2 DRAFTING STEP 6: §9 (limitations) + §10 (conclusion) drafted (zero-GPU)
+
+All 8 A800s idle (1 MiB, 0% util), no `ssm3way.py` procs; empirical arm remains CLOSED — writing tick.
+
+- `paper2/sec09_limitations.tex` (67 lines): consolidates the caveats already stated locally in §3.5/§4.3/§5.3/§6.3/§7.4/§8.3 into one section a reviewer can find — proxy-not-silicon + unpriced analog storage/converter (state density 0.994); small scale/short schedule with the honest note that the −0.309 noise benefit is itself the kind of effect that shrinks at scale, so the surviving +0.160 bpc tradeoff could move in EITHER direction; two tasks with exactly one out-of-sample principle test (quantizer contrast, post-hoc label carried; the genuinely pre-registered element is the M=32 ≥+0.37 floor, met); the σ=0.02 regularized reference is saturated-dose but not exhaustively tuned, and "no result moves in the neuromorphic routes' favour if the baseline improves"; the bound-arm negative scoped as a tested scope limit, not a general refutation; the M=64 validity limit restated.
+- `paper2/sec10_conclusion.tex` (42 lines): the fork answer is workload-conditional; the ranking reversal at matched rates/3 seeds; the principle as a designer's rule (spend the exactness budget on the side of the datapath the loss depends on); ADC-floors-θ + θ non-transfer as the analog route's co-design price; the bound closed as "design intuition, not validated theory" reusing the §7 sentence ("the bound was the reason to expect that result; it is not the reason to believe it"); closes on measured-silicon energy as the one missing number.
+- Claims discipline verified by grep, not assumed: body of both files has no "analog beats digital", no "bound confirmed"/contrapositive, no "190", copy margins referenced only via the corrected sections.
+- Every figure quoted (−0.309, +0.160/5.3%, 1.60×, 0.994, −0.002 vs +0.369/+0.385, ≥+0.37, 12×, 2.7× chance at M=64, +0.005±0.011 wd) copied from published ledger entries bb79f7f / 48510c8 / 471f113 / 750b1bb — nothing re-derived.
+- **All 10 sections are now drafted. Remaining: refs.bib (9 keys: paper1, s4, s4d, lmu, spikessm, cimssm, qs4d, imssa, hpd), main.tex assembly, LaTeX build LOCALLY on /home/zeyu (server has no latex); deck regeneration still open. No data cells — do not launch training.**
