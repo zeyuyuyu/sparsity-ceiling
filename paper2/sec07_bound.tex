@@ -1,0 +1,151 @@
+% Paper 2, Section 7 — The firing-floor bound: theory with a tested scope limit (evidence E5).
+% Numbers verified against ledger entries 471f113 (final shrink-H table, 18/18 cells, 3 seeds
+% per cell, floor correction), cef2101 (first refutation + contrapositive retraction),
+% 159e341 (why raising M fails structurally).
+% CLAIMS DISCIPLINE — forbidden in this section, per the skeleton's claims ledger:
+%   "the bound is confirmed"; "the contrapositive earns its keep"; any "190x" floor swing
+%   (that figure came from two mislabelled floors and is corrected to 12x).
+% The correct floor formula is H_b^{-1}(M*log2 K / H); the earlier log2 M reading is superseded.
+
+\section{The firing-floor bound: theory with a tested scope limit}
+\label{sec:bound}
+
+Paper~1 \citep{paper1} derives a firing-floor bound for recurrent networks that carry their
+state in spikes: if a binary state of width $H$ with mean activity $\rho$ must distinguish
+the memory states a task demands, then
+%
+\begin{equation}
+\rho \;\ge\; H_b^{-1}\!\left(\frac{M \log_2 K}{H}\right),
+\label{eq:floor}
+\end{equation}
+%
+where $H_b$ is the binary entropy function. The numerator counts \emph{bits}, not symbols:
+copying $M$ symbols drawn from an alphabet of size $K$ requires distinguishing $K^M$ states,
+so the demand is $M\log_2 K$ bits.\footnote{An earlier reading of this project used
+$\log_2 M$, which would have made every cell below unmeasurable (predicted floors
+$\sim 10^{-3}$). All floors quoted here use the corrected form.} The bound is the
+theoretical reason to expect a spiking recurrent state to be dense, and it motivated the
+whole three-route comparison. This section reports what happened when we tried to make it
+bind on a network that still learns its task. It does not bind, in either direction, and we
+report that as the negative it is.
+
+\subsection{Raising the memory load cannot test it}
+\label{sec:bound-M}
+
+The obvious test is to raise $M$ until the floor is high enough to measure against. It fails
+structurally, not for want of compute. On the copy task the \texttt{spikestate} variant is at
+exactly chance by $M{=}32$ (accuracy $0.0623 \pm 0.0012$ against a chance level of $0.0625$,
+three seeds) and again at $M{=}64$ ($0.0623 \pm 0.0005$). At $H{=}256$ the floor only reaches
+$0.500$ at $M{=}64$ --- a load at which the network retains nothing. Equation~\eqref{eq:floor}
+prices a state that actually carries the sequence, so a network storing nothing is outside its
+scope regardless of what activity it happens to exhibit. \emph{The learnability ceiling of a
+spiking recurrent state on copy ($M \approx 16$) sits below the load at which the floor begins
+to bind ($M{=}64$).} Consistent with this, measured state activity \emph{falls} with load
+($0.496 \pm 0.011$ at $M{=}16$, $0.405 \pm 0.030$ at $M{=}32$) rather than rising as the
+bound would require --- but we do not read that as evidence against the bound, because the
+premise of retention is already violated. Copy columns must never be cited as bound tests.
+
+\subsection{Shrinking the width is the valid design}
+\label{sec:bound-H}
+
+The alternative moves the same ratio $M\log_2 K / H$ by shrinking the denominator. Holding
+$M{=}16$ (the load a spiking state can still partly learn, $K{=}16$, so a fixed $64$-bit
+demand) and sweeping $H \in \{256, 128, 96, 64\}$ moves the predicted floor
+$0.042 \to 0.110 \to 0.174 \to 0.500$, a $12\times$ swing, on a task whose difficulty is
+unchanged. Both arms were run at three seeds per cell, $30$ epochs, $80$k copy sequences
+(Table~\ref{tab:bound}).
+
+Four criteria were registered in the results ledger before any cell of this row landed:
+(i)~a \emph{validity gate} --- the test counts only at widths where the digital reference
+still learns copy well above chance; (ii)~\emph{confirmation} --- \texttt{spikestate}'s state
+activity sits at or above the predicted floor \emph{and rises as $H$ shrinks}, the trend
+being the discriminating observable since the $H{=}256$ point already sits far above its own
+floor; (iii)~\emph{refutation} --- activity stays flat or falls across the sweep while the
+networks still learn, which would make the observed $\rho \approx 0.25$--$0.5$ an
+optimization artifact of the LIF state rather than an information-theoretic floor;
+(iv)~a stated \emph{most likely outcome} --- retention may die before the floor binds, in
+which case the honest verdict is that the bound is not empirically testable with this
+architecture at this scale.
+
+\begin{table}[t]
+\centering
+\caption{Shrink-$H$ bound row. Copy at $L{=}33$ ($M{=}16$, $K{=}16$, i.e.\ a $64$-bit memory
+demand), $30$ epochs, $80$k sequences, three seeds per cell; chance accuracy $0.0625$.
+Floor is $H_b^{-1}(64/H)$. $\rho$ is measured \texttt{spikestate} recurrent-state activity;
+margin kept is the fraction of the digital reference's above-chance accuracy margin that
+\texttt{spikestate} retains; the certificate is $H \cdot H_b(\rho)$ bits, to be compared
+against the fixed $64$-bit demand.}
+\label{tab:bound}
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+$H$ & params & floor & digital acc & spikestate acc & $\rho$ & margin kept & certificate \\
+\midrule
+$256$ & $87{,}889$ & $0.042$ & $0.6302 \pm 0.0106$ & $0.1071 \pm 0.0164$ & $0.4960 \pm 0.0106$ & $0.079$ & $256.0$ \\
+$128$ & $28{,}113$ & $0.110$ & $0.5944 \pm 0.0023$ & $0.1522 \pm 0.0049$ & $0.3915 \pm 0.0417$ & $0.169$ & $123.6$ \\
+$96$  & $18{,}289$ & $0.174$ & $0.5889 \pm 0.0065$ & $0.1570 \pm 0.0063$ & $0.3909 \pm 0.0336$ & $0.179$ & $92.7$ \\
+$64$  & $10{,}513$ & $0.500$ & $0.5600 \pm 0.0095$ & $0.1619 \pm 0.0039$ & $0.2496 \pm 0.0252$ & $0.200$ & $51.9$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The validity gate passes everywhere.}
+The digital reference keeps $9$--$10\times$ chance accuracy across an $8.4\times$ parameter
+range ($0.630 \to 0.560$ from $H{=}256$ to $H{=}64$). Copy at $M{=}16$ is therefore not
+width-limited anywhere in $H \in [64, 256]$: shrinking $H$ moves the predicted floor by
+$12\times$ while barely changing what the task demands of a network that can do it. That is
+precisely the property raising $M$ could not deliver, and it makes all four cells legitimate
+tests rather than capacity-limited ones.
+
+\paragraph{Criterion (ii) is refuted, by anti-correlation rather than by flatness.}
+As the predicted floor rises $12\times$, measured state activity \emph{falls} by half:
+$0.496 \to 0.392 \to 0.391 \to 0.250$. The $H{=}128$ and $H{=}96$ points are statistically
+indistinguishable, and at $H{=}64$ the measured activity lands \emph{below} its own predicted
+floor. This is criterion~(iii)'s shape. Measured LIF state activity in this architecture is
+\textbf{width-determined, not information-determined}.
+
+\subsection{The anti-capacity finding}
+\label{sec:bound-anticapacity}
+
+The sweep also produces an ordering that no information bottleneck can generate.
+Inverting~\eqref{eq:floor} turns a measured $(\rho, H)$ into a capacity certificate
+$H \cdot H_b(\rho)$: the most bits the spiking state could be carrying. Across the row that
+certificate falls $256.0 \to 123.6 \to 92.7 \to 51.9$ bits against a fixed $64$-bit demand,
+i.e.\ from a $4.0\times$ surplus to a $0.81\times$ deficit. \emph{Accuracy moves the other
+way}: margin kept rises monotonically $0.079 \to 0.169 \to 0.179 \to 0.200$, and paired
+$\Delta$bpc against the digital reference improves in lockstep
+($+2.509 \pm 0.060 \to +2.079 \pm 0.016 \to +2.050 \pm 0.023 \to +1.829 \pm 0.051$). The most
+over-provisioned network is the worst one. A capacity constraint cannot produce that
+ordering; an optimization pathology can. Spiking-state failure on precise recall is a
+trainability failure, and the bound does not explain it.
+
+\paragraph{A retracted intermediate reading, kept for the record.}
+When only the $H{=}64$ cell had landed, its $12$-bit certificate deficit alongside a large
+accuracy shortfall looked like the bound earning its keep in contrapositive form --- predicted
+incapacity, observed failure. The $H{=}96$ cell killed that reading: the certificate there
+shows a $1.4\times$ \emph{surplus} and \texttt{spikestate} nevertheless fails essentially
+identically ($0.157$ vs.\ $0.162$ accuracy). The match at $H{=}64$ was coincidental, and the
+certificate is necessary-but-not-sufficient and non-diagnostic at this scale. We state this
+because the intermediate reading was recorded before it was refuted, and because the
+refutation is the more informative result.
+
+\subsection{Verdict}
+\label{sec:bound-verdict}
+
+Equation~\eqref{eq:floor} is \textbf{not empirically validated by this architecture at this
+scale, in either direction}. We could not construct a regime where the firing-floor bound
+binds on a network that still learns the task: raising the memory load kills retention before
+the floor engages, and shrinking the width engages the floor but finds measured activity
+anti-correlated with it across a $12\times$ swing, with accuracy improving as predicted
+capacity shrinks. The bound stays in this paper as theory with a stated and now \emph{tested}
+scope limit --- it applies to a spiking recurrent state that genuinely carries the task's
+memory, and we were unable to build one.
+
+Two things survive this negative and are worth separating from it. The empirical firing
+ceiling of Paper~1 --- a recurrent spiking char-LM that will not sparsify below
+$\approx 50\%$ --- is a measurement, not a prediction of~\eqref{eq:floor}, and is untouched.
+And the practical design conclusion that a compressed recurrent state should not be carried
+in spikes is established here empirically rather than theoretically: Section~\ref{sec:copy}
+shows a $1$-bit recurrent state sitting at exactly chance on precise recall at two memory
+loads while being the cheapest variant by the energy proxy. The bound was the reason to
+expect that; it is not the reason to believe it.

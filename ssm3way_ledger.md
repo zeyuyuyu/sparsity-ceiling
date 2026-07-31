@@ -1482,3 +1482,51 @@ as the one genuinely pre-registered element; §6.4 reports the noise-benefit tre
 
 Remaining writeup steps: §7 (bound — reuse memo v3 §8), intro/related/hardware/limitations,
 main.tex assembly + local LaTeX build on /home/zeyu; deck regeneration still open.
+
+## 2026-07-31 tick — PAPER2 DRAFTING STEP 3: §7 (the firing-floor bound) drafted
+
+Zero-GPU writing tick. All 8 A800s idle (1 MiB, 0% util), no `ssm3way.py` processes, no data
+cells remain — per the standing "writeup is the bottleneck" verdict.
+
+**Written:** `paper2/sec07_bound.tex` (151 lines), the third drafting step after §3+§4
+(be0ab4a) and §5+§6 (750b1bb). Language reuses memo v3 §8; all figures copied from the
+published ledger entry **471f113** (final 18/18 shrink-H table, 3 seeds/cell) and **159e341**
+(why raising M fails structurally) — nothing re-derived this tick.
+
+**Structure:**
+- §7 opener restates the bound with the corrected `M·log₂K` numerator and footnotes the
+  superseded `log₂M` symbol reading (which would have made every cell unmeasurable).
+- §7.1 *Raising the memory load cannot test it* — spikestate at exactly chance at M=32
+  (0.0623±0.0012) and M=64 (0.0623±0.0005) vs chance 0.0625; the learnability ceiling
+  (~M=16) sits below the binding load (M=64); the falling ρ with load (0.496→0.405) is
+  explicitly NOT read as evidence against the bound, since retention is already violated.
+  States plainly: copy columns must never be cited as bound tests.
+- §7.2 *Shrinking the width is the valid design* — the four pre-registered criteria (i)–(iv)
+  reproduced verbatim in prose, then Table 1 (H=256/128/96/64: floors 0.042/0.110/0.174/0.500,
+  digital 0.6302/0.5944/0.5889/0.5600, spikestate 0.1071/0.1522/0.1570/0.1619,
+  ρ 0.4960/0.3915/0.3909/0.2496, margin kept 0.079/0.169/0.179/0.200, certificate
+  256.0/123.6/92.7/51.9 bits). Validity gate passes at every width (9–10× chance across an
+  8.4× param range); criterion (ii) refuted **by anti-correlation, not flatness**.
+- §7.3 *The anti-capacity finding* — certificate falls 4.0× surplus → 0.81× deficit while
+  margin kept RISES monotonically and paired Δbpc improves in lockstep
+  (+2.509→+2.079→+2.050→+1.829). The most over-provisioned net is the worst; an information
+  bottleneck cannot produce that ordering. Includes the **retracted contrapositive** history
+  in its own labelled paragraph (H=64 match coincidental; H=96 has a 1.4× surplus and fails
+  identically, 0.157 vs 0.162).
+- §7.4 *Verdict* — not empirically validated in either direction; theory with a tested scope
+  limit. Closes by separating two things that survive: Paper 1's empirical ~50% char-LM
+  firing ceiling (a measurement, not a prediction of the bound) and the practical
+  "don't carry a compressed recurrent state in spikes" rule, which §5 establishes
+  empirically instead ("the bound was the reason to expect that; it is not the reason to
+  believe it").
+
+**Claims discipline verified, not assumed:** grepped the file for the skeleton's forbidden
+strings — the only hit is the header comment that *lists* them; the body contains no
+"bound is confirmed", no contrapositive-earns-its-keep claim, and no 190× figure (the floor
+swing is stated as 12× throughout, per the 471f113 correction).
+
+**Remaining writeup steps:** §8 hardware implications (incl. ADC-step-floors-θ), then
+intro/related/limitations/conclusion, then `main.tex` assembly + a local LaTeX build on
+/home/zeyu (the server has no latex). Deck regeneration
+(`talk/beyond_attention_paradigms.pptx` per the edit list embedded in `talk/speaker_notes.md`)
+is still open. **No data cells remain — do not launch training.**
