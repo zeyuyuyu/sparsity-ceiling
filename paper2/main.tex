@@ -1,0 +1,95 @@
+% Paper 2 — main file.
+% Assembly only: title, abstract, package preamble, \input order sec01--sec10.
+% All section content lives in sec01_intro.tex ... sec10_conclusion.tex; nothing is
+% re-derived here. Every number in the abstract is copied from a published ledger entry
+% (ssm3way_ledger.md): a134f05 / bb79f7f (char-LM + regularization control and retraction),
+% a8e7a7c / 8e74f48 / 5bb7bcc / 8d050cb / 48510c8 (copy margins vs the noise-regularized
+% reference, quantizer contrast), 471f113 (final shrink-H bound table), 159e341 (why raising
+% the memory load cannot test the bound).
+%
+% CLAIMS DISCIPLINE — forbidden anywhere in this paper, per the skeleton's claims ledger:
+%   "analog beats digital" (retracted, bb79f7f); "the bound is confirmed" / any contrapositive
+%   claim (retracted, cef2101); any "190x" floor swing (corrected to 12x, 471f113); any copy
+%   margin quoted without the regularized-reference correction; any pJ figure presented as a
+%   silicon measurement rather than a 45nm proxy.
+%
+% Build: pdflatex main && bibtex main && pdflatex main && pdflatex main
+% (LaTeX is not installed on the A800 box; build locally.)
+
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage[round]{natbib}
+\usepackage[hidelinks]{hyperref}
+
+\bibliographystyle{plainnat}
+
+\title{Degrade What the Task Ignores:\\
+Workload-Conditional Datapaths for State-Space Models\\
+on Neuromorphic Hardware}
+
+\author{Zeyu Wang\\
+Georgia Institute of Technology\\
+\texttt{zwang3286@gatech.edu}}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+State-space models are often described as the natural sequence architecture for neuromorphic
+hardware, because their core is a linear recurrence that analog substrates physically implement.
+But ``an SSM on neuromorphic hardware'' hides a three-way fork over \emph{where} precision is
+given up: an exact digital state, a continuous state with a spiking output, or an analog state
+that is lossy by construction. We compare all three, plus a spiking-state control, at
+\emph{matched parameters} (identical tensors; only the position of the nonlinearity moves) and at
+\emph{matched communication rate}, on one statistical workload (character-level language
+modelling) and one precise-recall workload (synthetic copy at three memory loads), with three
+seeds per cell.
+
+Neither neuromorphic route dominates, and the ranking \emph{inverts} between the two tasks. On
+char-LM the analog-state datapath is the best non-digital variant and buys a $1.60\times$ cut in
+proxy energy for $+0.160$~bpc ($5.3\%$) of quality; we reach that number by retracting our own
+intermediate finding that the analog state beat the digital baseline, because giving the baseline
+the same training-time state noise ($\sigma{=}0.02$) is worth $-0.309$~bpc --- $2.1\times$ the
+apparent advantage --- so the earlier comparison was against an under-regularized comparator. On
+copy the order reverses: output-spiking retains $0.87$ and $0.42$ of the regularized baseline's
+above-chance accuracy margin at $M{=}16$ and $M{=}32$, the analog state retains $0.50$ and
+$0.28$, and a one-bit spiking state sits at \emph{exactly chance} at $M{=}32$ and $M{=}64$ while
+being the cheapest cell in the study --- an energy number that purchased nothing.
+
+We organize both orderings under one claim: a neuromorphic variant is cheap exactly when it
+degrades the part of the datapath the task does not depend on. Its sharpest test is
+out-of-sample and post-hoc: the same $6$-bit state quantizer costs $-0.002$~bpc on char-LM and
+$+0.369$/$+0.385$~bpc on copy at two memory loads. We also report a negative on the theory side.
+A firing-floor bound from prior work, $\rho \ge H_b^{-1}(M\log_2 K / H)$, is tested by shrinking
+the recurrent width so the predicted floor swings $12\times$ on a task the reference model still
+learns; measured spiking-state activity \emph{falls} ($0.496 \to 0.250$) as the floor rises, and
+accuracy \emph{improves} as predicted capacity shrinks, so the observed activity is
+width-determined rather than information-determined and the bound is not empirically validated in
+either direction at this scale. All energy figures are $45$~nm operation-count proxies from
+simulation, not silicon measurements, and the analog route's storage element and converter are
+unpriced.
+\end{abstract}
+
+\input{sec01_intro}
+\input{sec02_related}
+\input{sec03_protocol}
+\input{sec04_charlm}
+\input{sec05_copy}
+\input{sec06_principle}
+\input{sec07_bound}
+\input{sec08_hardware}
+\input{sec09_limitations}
+\input{sec10_conclusion}
+
+\bibliography{refs}
+
+\end{document}
