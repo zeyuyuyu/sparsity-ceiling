@@ -1866,3 +1866,14 @@ Server state: 7 GPUs visible (0–6, GPU 7 still absent), all idle, zero ssm3way
 - **Reading-list status: CLOSED.** All 9 paper-2 bib keys have verified metadata and qs4d/imssa/hpd are all read in full; refs.bib header comment updated to say so. No experimental number, caveat, post-hoc label or retraction touched.
 - **Consequence:** `paper2/paper2.pdf` is now stale vs sources (this commit) — rebuild LOCALLY on /home/zeyu (server has no latex) before submission; that is the next tick's candidate step.
 - **Server state this tick:** 7 GPUs visible (0–6, GPU 7 still absent), all idle (1 MiB, 0–2%); zero ssm3way.py procs; empirical arm closed.
+
+## 2026-08-01 tick — paper2.pdf rebuilt from post-IMSSA/HPD sources (stale-artifact fix, zero-GPU)
+
+The committed `paper2/paper2.pdf` was 2 commits stale vs sources (e05324b IMSSA correction + a6d2d87 HPD read). Rebuilt LOCALLY on /home/zeyu (server has no latex) and re-committed.
+
+- **Staleness scope verified, not assumed:** `git diff --name-only e355b71..a6d2d87` touches only `sec02_related.tex` + `refs.bib` among build inputs; those two were fetched and all 12 build inputs confirmed md5-identical to repo HEAD a6d2d87 before building.
+- **Build:** pdflatex → bibtex → pdflatex ×2, all exit 0; **zero Overfull boxes, zero undefined cites/refs; 13 pp / 532,933 B** (was 531,343 B).
+- **Content check on the rebuilt PDF (pdftotext, local):** IMSSA edit present ("hardware demonstration", "81.7% against a 95.1% software reference", "stuck devices") and HPD edit present ("weights, not the state", hybrid-split sentence). No experimental number, caveat, post-hoc label or retraction sentence touched — this is a pure artifact sync.
+- **Transfer integrity:** post-scp md5 `6880c004940d197e6776056322ee2a9b` and byte size match the local build exactly.
+- **State:** 7 GPUs visible (0–6, GPU 7 still absent), all idle, zero ssm3way.py procs. Empirical arm closed; no data cells.
+- **Committed PDF now matches committed sources.** Remaining items are USER decisions only: send `talk/imam_ssm_memo_v3.md` to Imam; arXiv-submit paper 2.
