@@ -1733,3 +1733,59 @@ language are never what gets trimmed.**
 the three TODO bib entries (qs4d/imssa/hpd, deliberately unasserted) once available, (3) regenerate
 `talk/beyond_attention_paradigms.pptx/.pdf` per the edit list in `talk/speaker_notes.md`, which is
 still pre-retraction. No data cells remain — do not launch training.
+
+## 2026-07-31 tick — TALK DECK REGENERATED to the post-retraction SSM framing (zero-GPU)
+
+State at tick start: all 8 A800s idle (1 MiB, 0% util), zero `ssm3way.py` processes, empirical arm
+closed, no data cells remain. The deck was the largest open writeup item — it still carried the
+**pre-result** SSM framing, i.e. it pitched direction One (analog-state SSM) as future work months
+after the study finished, with no retraction language anywhere.
+
+**What was done.** `talk/beyond_attention_paradigms.pptx` patched in place by a committed, re-runnable
+script `talk/patch_deck.py` (python-pptx). The script matches every target by its exact existing text
+and **aborts if any anchor is missing or ambiguous**, so it can never half-apply; whitespace matching
+is normalized because the deck uses U+202F inside "Loihi 2". Pre-patch deck preserved at
+`/tmp/deck_pre_patch.pptx` on the server. Deck goes 9 → 10 slides.
+
+1. **New results slide inserted at position 8** ("07 · SSM RESULTS", *Direction One, run: what the
+   analog-state SSM actually did*), cloned from the directions slide so the styling is identical.
+   Four blocks: (01) analog state buys **energy, not quality** — 1.60× proxy-energy cut (446k vs
+   712k pJ/token) for +0.160 bpc, with **"beats digital" stated as retracted** and the killing control
+   named (−0.309 bpc baseline noise); (02) the ranking **inverts by workload** at matched
+   communication rate, copy margins **0.87 / 0.50 / 0.074 quoted vs the noise-regularized reference**,
+   1-bit state at exactly chance and cheapest; (03) the **datapath-degradation principle** with the
+   quantizer contrast (−0.002 char-LM vs +0.37 copy) carrying its **post-hoc** label; (04) **"My own
+   bound did not survive its test"** — 12× floor swing vs ρ falling 0.496→0.250, accuracy improving as
+   capacity shrinks, bound = theory with a tested scope limit.
+2. **Directions slide** renumbered to "08 · PROPOSED DIRECTIONS" / page 09, retitled *What I would work
+   on next*; direction 01 folded from a proposal into "Analog state — done in simulation, open in
+   silicon", pointing at direction 02 (measured Loihi 2 / SpiNNaker 2 energy) as what to run first,
+   since every pJ figure is a 45nm proxy and the analog storage element and converter are unpriced.
+3. **Slide 6 ("THE BET")** — the line claiming analog state gives "no memory wall, no firing floor" now
+   reads "no memory wall; the firing floor is a spiking-state property (the bound itself: theory,
+   scope limit tested)", per edit-list item 3.
+
+**Every figure was copied from `imam_ssm_memo_v3.md` / published ledger entries, none re-derived**, so
+the deck cannot drift from the run JSONs. Claims discipline holds: no "analog beats digital" except
+inside the retraction sentence, no "bound confirmed", floor swing stated as 12×, copy margins vs the
+regularized reference, energy labelled a proxy.
+
+**Two things caught by verifying the render instead of trusting the save** (both real, both fixed):
+(i) first draft of the new slide's body text was 273–301 chars against the deck's own 139–165-char
+blocks and would have overflowed a 4.70×1.00 in box — trimmed to ≤216 chars with no claim or caveat
+dropped; (ii) the cloned slide came out **white**, because the deck's dark background is a `p:bg`
+element on the slide, not a shape in `spTree` — python-pptx's `add_slide` does not carry it, so the
+script now deep-copies `p:bg` into the new slide's `p:cSld`. Both verified by rasterizing the built
+PDF and looking at pages 6, 8 and 9.
+
+**PDF rebuilt**: the server has **no LibreOffice**, so `beyond_attention_paradigms.pdf` was regenerated
+locally on /home/zeyu (`soffice --headless --convert-to pdf`, LibreOffice 7.3), verified at 10 pages,
+and copied back. Build note for future ticks: **pptx → pdf must happen on /home/zeyu, not the server.**
+
+`talk/speaker_notes.md`'s PPTX EDIT LIST is now marked APPLIED with the commit reference, so a later
+tick does not redo it.
+
+**Remaining writeup items:** (1) fill paper 1's arXiv ID once `submit/7882862` is announced and verify
+the three deliberately-unasserted bib entries (qs4d / imssa / hpd), (2) nothing else is open — paper 2
+compiles clean at 13 pp, memo v3 is send-ready, speaker notes and deck are both post-retraction.
+**No data cells remain — do not launch training.**

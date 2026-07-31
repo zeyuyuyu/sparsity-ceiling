@@ -215,7 +215,12 @@ direction #1 is a 45nm proxy in simulation, never silicon.
 
 ---
 
-## PPTX EDIT LIST (deck not yet regenerated — 2026-07-31)
+## PPTX EDIT LIST — APPLIED 2026-07-31 (deck regenerated; see talk/patch_deck.py)
+
+All four items below were applied to beyond_attention_paradigms.pptx/.pdf by talk/patch_deck.py: a new
+results slide (07 · SSM RESULTS) was inserted at position 8, the directions slide was renumbered and its
+direction 01 folded into a done-in-simulation/open-in-silicon pointer, and the Slide 6 firing-floor line
+was annotated. Kept for the record:
 
 `beyond_attention_paradigms.pptx` / `.pdf` still carry the **pre-result** SSM framing. Before presenting:
 
