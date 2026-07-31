@@ -48,19 +48,22 @@ inference). Applied to the \emph{digital} baseline at matched noise $\sigma{=}0.
 quantizer costs:
 
 \begin{center}
-\small
-\begin{tabular}{l r r}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l r l}
 \toprule
-Workload & quantizer-alone $\Delta$bpc & state footprint \\
+Workload & $\Delta$bpc & state footprint \\
 \midrule
-char-LM                    & $-0.002$ & --- \\
-copy $M{=}16$ (3 seeds)    & $+0.369$ & $1.000 \rightarrow 0.971 \pm 0.015$ \\
-copy $M{=}32$ (3 seeds)    & $+0.385$ & $1.000 \rightarrow 0.976 \pm 0.005$ \\
+char-LM         & $-0.002$ & --- \\
+copy $M{=}16$   & $+0.369$ & $1.000{\to}0.971{\pm}0.015$ \\
+copy $M{=}32$   & $+0.385$ & $1.000{\to}0.976{\pm}0.005$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-The identical hardware degradation is free on the statistical workload and costs
+\noindent
+Both copy rows are three seeds, and $\Delta$bpc is the quantizer-alone cost at matched
+$\sigma{=}0.02$. The identical hardware degradation is free on the statistical workload and costs
 $\sim 0.37$--$0.39$ bpc on the precise-recall workload --- the principle's prediction, out of
 sample, on a datapath (plain digital) that none of the four variants' comparisons touched.
 The effect is load-robust: a floor of ``$\ge +0.37$ at $M{=}32$, smaller counts as evidence

@@ -26,7 +26,7 @@ Section~\ref{sec:controls}, the reference at $M{=}16$ and $M{=}32$ is the
 well (paired $\Delta$bpc $-0.150 \pm 0.033$ at $M{=}16$, $-0.215 \pm 0.011$ at $M{=}32$);
 margins against the plain baseline are $3$--$5$ points higher and are upper bounds.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Copy task, 3 seeds (mean $\pm$ sd), ep30 budget, $H{=}256$ ($87{,}889$ parameters),
 $K{=}16$, chance acc $0.0625$ / bpc $4.000$. ``Emit'' is the emitted (wire) rate; ``state''
@@ -35,7 +35,7 @@ $M{=}16/32$ and vs.\ the plain digital baseline at $M{=}64$ (the regularization 
 not run there; see \S\ref{sec:copy-load}). Energy is the 45\,nm proxy, not a silicon
 measurement.}
 \label{tab:copy}
-\small
+\footnotesize
 \begin{tabular}{l l r r r r r r}
 \toprule
 $M$ & Variant & acc & bpc & emit & state & margin kept & pJ/tok \\
@@ -58,7 +58,7 @@ $M$ & Variant & acc & bpc & emit & state & margin kept & pJ/tok \\
 64 & spikestate           & $0.062 \pm 0.001$ & $4.002 \pm 0.001$ & 0.238 & 0.238 & 0.00 & 91k \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 The three non-digital variants emit at nearly matched rates ($0.40$--$0.50$ at every load), so
 --- as in Section~\ref{sec:charlm-matched} --- the quality spread is not an operating-point

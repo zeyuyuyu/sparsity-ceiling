@@ -15,7 +15,7 @@ regularized-baseline arms. Two references are shown, because the choice of refer
 one of this section's results: paired $\Delta$bpc against the \emph{plain} digital baseline,
 and against the \emph{noise-regularized} digital baseline of Section~\ref{sec:controls}.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Char-level LM, 3 seeds (mean $\pm$ sd), 173{,}596 parameters per variant, identical
 budgets. ``Emit'' is the emitted (wire) rate; ``state'' is state activity. Paired
@@ -23,7 +23,7 @@ $\Delta$bpc is per-seed against the plain digital baseline (negative = better). 
 column re-references against the noise-regularized digital baseline. Energy is the 45\,nm
 proxy of Section~\ref{sec:energy}, not a silicon measurement.}
 \label{tab:charlm}
-\small
+\footnotesize
 \begin{tabular}{l r r r r r r r}
 \toprule
 Variant & $\theta$ & bpc & emit & state & $\Delta$bpc (plain) & $\Delta$bpc (reg.) & pJ/tok \\
@@ -40,7 +40,7 @@ spikestate             & --   & $3.621 \pm 0.013$ & 0.645 & 0.645 & $+0.278 \pm 
 spikeout               & --   & $4.398 \pm 0.029$ & 0.369 & 1.000 & $+1.055 \pm 0.032$ & $+1.364$ & 433k \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 The obvious objection to any cross-datapath quality comparison is that each variant sits at its
 own operating point. The $\theta$ sweep removes it: the analog variant can be dialed to either
@@ -85,7 +85,7 @@ The clean decomposition of the analog datapath's net effect on char-LM:
 \[
   \underbrace{-0.309}_{\text{state-noise gift}}
   \;+\;
-  \underbrace{+0.160 \text{ (at } \theta{=}0.15\text{)} \;\rightarrow\; +0.326 \text{ (at } \theta{=}1.0\text{)}}_{\text{send-on-delta gating cost}}
+  \underbrace{+0.160 \ \text{to} \ +0.326}_{\substack{\text{send-on-delta gating cost}\\ \theta{=}0.15 \to \theta{=}1.0}}
 \]
 The analog datapath supplies a genuine regularizer for free --- and physically, which is a real
 point in favor of analog silicon --- but its sparsity mechanism charges more than the gift is

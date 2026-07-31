@@ -1690,3 +1690,46 @@ two-column style (roughly halves it; also what cs.NE arXiv submissions usually l
 announced and verify the three TODO bib entries; (3) regenerate
 `talk/beyond_attention_paradigms.pptx/.pdf` per the edit list embedded in `talk/speaker_notes.md`
 (still pre-retraction). **No data cells remain — do not launch training.**
+
+## 2026-07-31 tick — PAPER2 FORMAT/LENGTH PASS: two-column build is clean, but the length target does NOT fall out of formatting
+
+Zero-GPU tick. Server state: GPU 1 was another user's job (13.7 GB / 100%), GPUs 0,2-7 idle at
+1 MiB; zero `ssm3way.py` processes. Empirical arm remains closed — no data cells launched.
+
+**What was done.** Fix (a) from the previous tick's length plan: `paper2/main.tex` switched to
+`\documentclass[10pt,twocolumn]`, margins 1in -> 0.85in, `\columnsep` 0.28in, and the
+title+abstract wrapped in `\twocolumn[\begin{@twocolumnfalse}...]` so they still span the page.
+The three wide tables (Table 1 char-LM, Table 2 copy, Table 3 shrink-H) became `table*` floats at
+`\footnotesize`; the shrink-H table also got `\tabcolsep` 4pt. Build verified locally at
+`/home/zeyu/paper2_build/`: **exit 0, 13 pp, ZERO overfull boxes, zero undefined citations/refs**.
+
+**HONEST FINDING — the previous tick's estimate that "two-column roughly halves it" was WRONG.
+Two-column bought 15 pp -> 13 pp, about 13%, not 50%.** Measured cause, not guessed: the body is
+**8,404 words** across sec01-sec10, and the rendered density is ~780 words/page (pages 1-12 carry
+671-844 words each; page 13 holds only the bibliography's 80 words). Single-column 10pt at 1in
+margins was already dense, so the two-column saving is line-breaking slack only. **The remaining
+gap to the skeleton's 6-8 pp target is CONTENT LENGTH, not formatting** — reaching 8 pp means
+removing roughly 2,500-3,000 words or ~35% of the body.
+
+**Two overfull boxes existed and both are now fixed** (they only appeared once the text was in
+narrow columns, so this pass found them rather than caused them): the sec04 `\underbrace`
+decomposition display (-0.309 gift + 0.160->0.326 gating cost) was 17.6pt too wide for a column
+and is now stacked with `\substack`; the sec06 quantizer-contrast tabular was 41.6pt too wide and
+was compacted (shorter header, `{\to}`/`{\pm}` spacing, `\tabcolsep` 4pt) with the "three seeds,
+quantizer-alone at matched sigma=0.02" qualifier moved into the adjoining prose so **no
+information was dropped** to make it fit.
+
+**Recommendation for the next writeup tick, stated as a decision rather than a menu.** arXiv has
+no page limit and 13 pp two-column is a normal arXiv length for a paper carrying three result
+tables plus a closed negative arm, so **the default should be to accept 13 pp for the arXiv
+version and drop the 6-8 pp target**, which was set before the section drafts existed. If a
+conference version is wanted later, the cut order is: (1) move the shrink-H table and the copy
+M=64 column to an appendix (M=64 is already validity-limited and non-citable per 750b1bb), (2)
+compress sec07 prose, which is the longest section at 9.8 kB and reports a negative result.
+**The claims-discipline rule still binds any cut: caveats, post-hoc labels and retraction
+language are never what gets trimmed.**
+
+**Remaining writeup items:** (1) length decision per above, (2) fill paper 1's arXiv ID and verify
+the three TODO bib entries (qs4d/imssa/hpd, deliberately unasserted) once available, (3) regenerate
+`talk/beyond_attention_paradigms.pptx/.pdf` per the edit list in `talk/speaker_notes.md`, which is
+still pre-retraction. No data cells remain — do not launch training.

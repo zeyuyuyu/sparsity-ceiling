@@ -67,7 +67,7 @@ optimization artifact of the LIF state rather than an information-theoretic floo
 which case the honest verdict is that the bound is not empirically testable with this
 architecture at this scale.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Shrink-$H$ bound row. Copy at $L{=}33$ ($M{=}16$, $K{=}16$, i.e.\ a $64$-bit memory
 demand), $30$ epochs, $80$k sequences, three seeds per cell; chance accuracy $0.0625$.
@@ -76,7 +76,8 @@ margin kept is the fraction of the digital reference's above-chance accuracy mar
 \texttt{spikestate} retains; the certificate is $H \cdot H_b(\rho)$ bits, to be compared
 against the fixed $64$-bit demand.}
 \label{tab:bound}
-\small
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lrrrrrrr}
 \toprule
 $H$ & params & floor & digital acc & spikestate acc & $\rho$ & margin kept & certificate \\
@@ -87,7 +88,7 @@ $96$  & $18{,}289$ & $0.174$ & $0.5889 \pm 0.0065$ & $0.1570 \pm 0.0063$ & $0.39
 $64$  & $10{,}513$ & $0.500$ & $0.5600 \pm 0.0095$ & $0.1619 \pm 0.0039$ & $0.2496 \pm 0.0252$ & $0.200$ & $51.9$ \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \paragraph{The validity gate passes everywhere.}
 The digital reference keeps $9$--$10\times$ chance accuracy across an $8.4\times$ parameter

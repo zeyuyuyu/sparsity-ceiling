@@ -16,9 +16,9 @@
 % Build: pdflatex main && bibtex main && pdflatex main && pdflatex main
 % (LaTeX is not installed on the A800 box; build locally.)
 
-\documentclass[10pt]{article}
+\documentclass[10pt,twocolumn]{article}
 
-\usepackage[margin=1in]{geometry}
+\usepackage[margin=0.85in]{geometry}
 \usepackage{lmodern}          % scalable fonts: microtype expansion needs them
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -31,6 +31,8 @@
 
 \bibliographystyle{plainnat}
 
+\setlength{\columnsep}{0.28in}
+
 \title{Degrade What the Task Ignores:\\
 Workload-Conditional Datapaths for State-Space Models\\
 on Neuromorphic Hardware}
@@ -42,8 +44,10 @@ Georgia Institute of Technology\\
 \date{}
 
 \begin{document}
+\makeatletter
+\twocolumn[
+\begin{@twocolumnfalse}
 \maketitle
-
 \begin{abstract}
 State-space models are often described as the natural sequence architecture for neuromorphic
 hardware, because their core is a linear recurrence that analog substrates physically implement.
@@ -79,6 +83,10 @@ either direction at this scale. All energy figures are $45$~nm operation-count p
 simulation, not silicon measurements, and the analog route's storage element and converter are
 unpriced.
 \end{abstract}
+\bigskip
+\end{@twocolumnfalse}
+]
+\makeatother
 
 \input{sec01_intro}
 \input{sec02_related}
