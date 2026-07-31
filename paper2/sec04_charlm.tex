@@ -1,0 +1,113 @@
+% Paper 2, Section 4 — Char-LM: the statistical workload (evidence E1 + E2).
+% Numbers copied from ssm3way_ledger.md entries a134f05 (theta sweep, matched rates) and
+% bb79f7f (regularization control / retraction); table regenerates via `python agg_charlm.py`.
+% CLAIMS DISCIPLINE: "analog beats digital" is RETRACTED and must not appear as a claim.
+
+\section{Char-LM: the statistical workload}
+\label{sec:charlm}
+
+\subsection{Results at matched communication rate}
+\label{sec:charlm-matched}
+
+Table~\ref{tab:charlm} gives the full three-seed character-LM comparison: the four datapaths,
+an analog send-on-delta threshold sweep $\theta \in \{0.15, 0.25, 0.5, 0.75, 1.0\}$, and the
+regularized-baseline arms. Two references are shown, because the choice of reference is itself
+one of this section's results: paired $\Delta$bpc against the \emph{plain} digital baseline,
+and against the \emph{noise-regularized} digital baseline of Section~\ref{sec:controls}.
+
+\begin{table}[t]
+\centering
+\caption{Char-level LM, 3 seeds (mean $\pm$ sd), 173{,}596 parameters per variant, identical
+budgets. ``Emit'' is the emitted (wire) rate; ``state'' is state activity. Paired
+$\Delta$bpc is per-seed against the plain digital baseline (negative = better). The final
+column re-references against the noise-regularized digital baseline. Energy is the 45\,nm
+proxy of Section~\ref{sec:energy}, not a silicon measurement.}
+\label{tab:charlm}
+\small
+\begin{tabular}{l r r r r r r r}
+\toprule
+Variant & $\theta$ & bpc & emit & state & $\Delta$bpc (plain) & $\Delta$bpc (reg.) & pJ/tok \\
+\midrule
+digital (plain)        & --   & $3.343 \pm 0.022$ & 1.000 & 1.000 & $0$        & $+0.309$ & 712k \\
+digital + noise reg.   & --   & $3.034 \pm 0.017$ & 1.000 & 1.000 & $-0.309 \pm 0.024$ & $0$ & 712k \\
+\midrule
+analog                 & 0.15 & $3.194 \pm 0.008$ & 0.612 & 0.994 & $-0.149 \pm 0.014$ & $+0.160$ & 446k \\
+analog                 & 0.25 & $3.209 \pm 0.023$ & 0.550 & 0.994 & $-0.134 \pm 0.034$ & $+0.175$ & 442k \\
+analog                 & 0.50 & $3.234 \pm 0.003$ & 0.472 & 0.993 & $-0.109 \pm 0.024$ & $+0.201$ & 438k \\
+analog                 & 0.75 & $3.293 \pm 0.011$ & 0.380 & 0.992 & $-0.050 \pm 0.020$ & $+0.259$ & 432k \\
+analog                 & 1.00 & $3.360 \pm 0.027$ & 0.266 & 0.992 & $+0.017 \pm 0.007$ & $+0.326$ & 426k \\
+spikestate             & --   & $3.621 \pm 0.013$ & 0.645 & 0.645 & $+0.278 \pm 0.009$ & $+0.587$ & 157k \\
+spikeout               & --   & $4.398 \pm 0.029$ & 0.369 & 1.000 & $+1.055 \pm 0.032$ & $+1.364$ & 433k \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The obvious objection to any cross-datapath quality comparison is that each variant sits at its
+own operating point. The $\theta$ sweep removes it: the analog variant can be dialed to either
+spiking comparator's \emph{own} emitted rate and read there.
+
+\begin{itemize}
+  \item \textbf{vs.\ spikestate} (emits $0.645 \pm 0.020$): analog at $\theta{=}0.15$ emits
+    $0.612$ --- slightly \emph{less} wire traffic --- at paired $\Delta$bpc $-0.149$ versus
+    spikestate's $+0.278$: a \textbf{0.427 bpc} gap at matched communication.
+  \item \textbf{vs.\ spikeout} (emits $0.369 \pm 0.037$): analog at $\theta{=}0.75$ emits
+    $0.380$ at $\Delta$bpc $-0.050$ versus $+1.055$: a \textbf{1.10 bpc} gap.
+\end{itemize}
+
+Forcing analog up to the comparators' emission does not erode its advantage; $\Delta$bpc is
+monotone in emission ($+0.017 \rightarrow -0.149$ as emission rises $0.27 \rightarrow 0.61$).
+On the statistical workload, the analog-state datapath is the best neuromorphic route at
+\emph{every} matched operating point, and the ordering
+(analog $\ll$ spikestate $\ll$ spikeout) is not an operating-point artifact. Note also
+spikeout's signature, which will matter in Section~\ref{sec:copy}: its state activity is
+exactly $1.0000$ at every seed --- output spiking leaves the state fully dense, so its
+``sparsity'' lives entirely on the wire.
+
+\subsection{The control that changed the headline}
+\label{sec:charlm-control}
+
+Read against the plain digital baseline, Table~\ref{tab:charlm} appears to show the analog
+datapath \emph{beating} its digital reference by $0.149 \pm 0.014$ bpc at 61\% emission ---
+all three seeds negative. We report this intermediate finding because we published it and then
+retracted it, and the retraction is the section's real result.
+
+The suspicion is visible in the mechanism: the analog state's noise, quantization, and
+send-on-delta suppression act as a stochastic regularizer on a 173k-parameter model at a
+6-epoch schedule, and the plain digital baseline is not regularization-tuned. The control is
+to give the baseline the same medicine. Training-time state noise $\sigma{=}0.02$ on the
+digital baseline is worth $-0.309 \pm 0.024$ bpc --- \emph{2.1 times the entire apparent analog
+advantage} --- while weight decay is worth exactly nothing ($+0.005 \pm 0.011$) and 6-bit
+quantization contributes nothing on this task ($-0.311$ with vs.\ $-0.309$ without). Against
+the properly regularized baseline, analog at $\theta{=}0.15$ is $+0.160$ bpc \emph{worse}, far
+outside seed noise.
+
+The clean decomposition of the analog datapath's net effect on char-LM:
+\[
+  \underbrace{-0.309}_{\text{state-noise gift}}
+  \;+\;
+  \underbrace{+0.160 \text{ (at } \theta{=}0.15\text{)} \;\rightarrow\; +0.326 \text{ (at } \theta{=}1.0\text{)}}_{\text{send-on-delta gating cost}}
+\]
+The analog datapath supplies a genuine regularizer for free --- and physically, which is a real
+point in favor of analog silicon --- but its sparsity mechanism charges more than the gift is
+worth at every threshold.
+
+\subsection{The surviving claim}
+\label{sec:charlm-claim}
+
+Because the reference's noise is training-time only, the regularized digital baseline has an
+\emph{identical inference datapath and energy} to the plain one (712k pJ/token proxy). The
+honest char-LM headline is therefore an energy--quality tradeoff, not a quality win:
+
+\begin{quote}
+\textbf{On the statistical workload, the analog-state SSM buys a $1.60\times$ proxy-energy
+reduction (446k vs.\ 712k pJ/token) for a $+0.160$ bpc (5.3\%) quality cost against a
+noise-regularized digital baseline, while remaining --- by 0.43 and 1.10 bpc at matched wire
+rates --- the best of the three neuromorphic datapaths.}
+\end{quote}
+
+Re-referencing shifts every variant by the same constant, so the variant ordering is
+unaffected: against the regularized baseline, analog $+0.160 \ll$ spikestate $+0.587 \ll$
+spikeout $+1.364$. Two caveats travel with the headline: the regularization-mediated effects
+here may shrink at larger scale or under a fully tuned baseline, and matching emitted rate
+matches wire traffic only --- the analog state is dense (state activity $0.994$), and its
+storage elements and converters are unpriced by the proxy (Section~\ref{sec:energy}).

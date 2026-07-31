@@ -1427,3 +1427,24 @@ arm is a STANDALONE SECOND PAPER. This tick created `paper2/skeleton.md` in the 
   skeleton itself so later drafting ticks cannot drift.
 - Figures/tables plan keyed to agg_charlm.py / agg_copy.py / plot_ssm3way.py outputs.
 - Next: draft sections 3+4 (protocol + char-LM), then 5+6, then 7 (reuse memo v3 section 8 language).
+
+
+## 2026-07-31 tick — paper2 drafting step 1: §3 (protocol) + §4 (char-LM) drafted as LaTeX (zero-GPU)
+
+Writing tick per the standing verdict (empirical arm closed 48510c8; skeleton 56d987d). All 8
+A800s verified idle, no ssm3way.py processes.
+
+- New files: `paper2/sec03_protocol.tex`, `paper2/sec04_charlm.tex`. LaTeX section files;
+  the build happens locally on /home/zeyu (server has no latex). Assembly (main.tex, refs,
+  \citet{paper1} placeholder) deferred to a later tick.
+- Discipline: Table 1 numbers were regenerated from `agg_charlm.py` THIS TICK and matched the
+  published a134f05/bb79f7f ledger entries exactly before being copied in; nothing re-derived.
+  Δbpc-vs-regularized column computed as published Δbpc(plain) + 0.309 shift (same constant for
+  all variants), consistent with the bb79f7f re-referencing.
+- Claims ledger honored: §4.2 reports the "analog beats digital" reading explicitly AS the
+  retracted intermediate finding, with the −0.309 noise / +0.160 gating decomposition; §4.3
+  states the surviving claim as the 1.60× proxy-energy-for-+0.160-bpc tradeoff; §3.5 carries
+  the proxy-not-silicon + unpriced-converter caveats; emitted-rate-vs-state-activity
+  distinction is a named metric in §3.4 (analog state density 0.994 stated in both sections).
+- Next drafting steps (unchanged from skeleton): §5+§6 (copy + principle), §7 (bound, reuse
+  memo v3 §8), intro/related last; then deck regeneration.

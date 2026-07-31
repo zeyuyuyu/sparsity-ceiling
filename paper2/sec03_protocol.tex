@@ -1,0 +1,101 @@
+% Paper 2, Section 3 — Experimental protocol.
+% Every number here is copied from published ledger entries (ssm3way_ledger.md); nothing re-derived.
+% Tables regenerate from agg_charlm.py / agg_copy.py 30.
+
+\section{Experimental protocol}
+\label{sec:protocol}
+
+\subsection{One model, four datapaths}
+\label{sec:variants}
+
+All comparisons in this paper are between four implementations of the \emph{same} state-space
+model. Every variant owns an identical set of tensors --- token embedding, input projection
+$W_{\mathrm{in}}$, a diagonal decay (an S4D-real--style linear recurrence), a mixing layer
+$W_{\mathrm{mix}}$, and output projection $W_{\mathrm{out}}$ --- so parameter counts match
+exactly (173{,}596 parameters for the character-LM configuration at $H{=}256$; 10{,}513 to
+87{,}889 for the copy configurations, depending on width). The only thing that moves between
+variants is \emph{where in the datapath a nonlinearity (spiking or analog degradation) is
+inserted}:
+
+\begin{itemize}
+  \item \textbf{digital} --- the continuous baseline: exact state, exact output. This is the
+    reference implementation a GPU or digital accelerator would run.
+  \item \textbf{spikeout} --- continuous recurrent state, leaky-integrate-and-fire (LIF)
+    nonlinearity on the \emph{output} only, following the SPikE-SSM design point: the linear
+    state is carried at full precision and only the emitted representation is binarized.
+  \item \textbf{analog} --- the recurrent state is held as a continuous \emph{analog} variable
+    with the imperfections of an analog storage element simulated explicitly: hard rails at
+    $\pm 4$, additive state noise $\sigma{=}0.02$ (applied at training time), and 6-bit uniform
+    quantization over the rail range (applied always, i.e.\ also at inference). Communication
+    is by \emph{send-on-delta graded events}: a unit transmits only when its quantized state
+    has moved by more than a threshold $\theta$ since its last transmission.
+  \item \textbf{spikestate} --- the recurrent state itself is carried in binary spikes (LIF
+    state). This is the floor-control variant: it is the only datapath inside the scope of the
+    firing-floor bound of \citet{paper1}, which prices a recurrent memory carried in spikes.
+\end{itemize}
+
+Because the tensors are shared and only the nonlinearity's position moves, any quality or
+activity difference between variants is attributable to the datapath, not to capacity,
+architecture, or tuning asymmetries.
+
+\subsection{Tasks: one statistical, one precise-recall}
+\label{sec:tasks}
+
+The central claim is workload-conditional, so the protocol needs two workloads that isolate
+the two demands a recurrent state can carry.
+
+\textbf{Character-level language modeling (statistical).} Char-level WikiText, 1.4M characters,
+vocabulary 65, six epochs, three seeds. The task rewards accurate sequence \emph{statistics};
+no individual symbol must be retained exactly. Quality is bits-per-character (bpc).
+
+\textbf{Synthetic copy (precise recall).} The model reads $M$ symbols from an alphabet of
+$K{=}16$, then must reproduce them after a delay; sequence length $L \in \{33, 65, 129\}$ gives
+memory load $M = (L{-}1)/2 \in \{16, 32, 64\}$. Chance accuracy is $1/16 = 0.0625$ and chance
+bpc is $\log_2 16 = 4.000$. Training uses 30 epochs and 80{,}000 sequences per load, three
+seeds. This budget was set by an explicit baseline-gate probe: at the original short budget
+(6 epochs, 20k sequences) even the digital baseline barely cleared chance, making variant
+comparisons meaningless; at 30 epochs/80k it reaches $9$--$10\times$ chance at every width and
+load used here, so all reported cells are legitimate comparisons.
+
+\subsection{Reference baseline and controls}
+\label{sec:controls}
+
+A comparison against an under-tuned baseline flatters every alternative. The project learned
+this the expensive way (Section~\ref{sec:charlm-control}), so all margin figures in this paper
+are referenced to a \emph{noise-regularized} digital baseline: the plain digital model trained
+with the same additive state noise $\sigma{=}0.02$ the analog datapath receives, applied at
+training time only. This costs nothing at inference (identical datapath and energy) and is
+worth $-0.309$ bpc on char-LM and $-0.150$/$-0.215$ bpc on copy at $M{=}16$/$32$ --- larger
+than several of the effects under study, which is exactly why it must be in the reference.
+
+Two dissociation controls pin down what the regularizer is: weight decay ($10^{-4}$) is worth
+exactly nothing ($+0.005 \pm 0.011$ bpc), ruling out generic capacity control, and raising the
+noise dose to $\sigma{=}0.05$ changes nothing ($-0.312$ vs $-0.309$), so the dose is already
+saturated. The benefit is specifically \emph{state-level stochasticity in the recurrence}.
+
+\subsection{Metrics}
+\label{sec:metrics}
+
+\textbf{Quality:} bpc (char-LM), accuracy and bpc (copy). Variant effects are reported as
+\emph{paired per-seed} $\Delta$bpc against the reference, which removes shared seed variance.
+
+\textbf{Margin kept:} on copy, absolute accuracies are low, so we report the fraction of the
+reference baseline's \emph{above-chance} accuracy margin a variant retains,
+$(\mathrm{acc} - 0.0625) / (\mathrm{acc}_{\mathrm{ref}} - 0.0625)$.
+
+\textbf{Activity, split into two numbers.} \emph{Emitted rate} counts transmissions on the
+wire (spikes, or send-on-delta events); \emph{state activity} counts active state units. The
+distinction matters: the analog variant's state is dense by construction (state activity
+$\approx 0.99$) while its emitted rate can be low --- matching variants on emitted rate matches
+\emph{wire traffic}, not state density, and a dense analog state costs a storage element and a
+converter per unit that no spike count captures.
+
+\subsection{Energy proxy --- and what it is not}
+\label{sec:energy}
+
+Operation counts are priced with the 45\,nm figures of Horowitz: 4.6\,pJ per multiply-accumulate
+(MAC) and 0.9\,pJ per accumulate (AC). Spiking paths pay AC where a spike replaces a multiply;
+analog graded events are priced \emph{both} ways (AC-optimistic and MAC-conservative), since a
+graded event is not a 1-bit spike. We state plainly: these are proxy numbers, not silicon
+measurements; the analog storage element, its converters, and the ADC are \emph{unpriced}; no
+claim in this paper should be read as a measured-hardware energy result.
