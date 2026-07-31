@@ -1530,3 +1530,37 @@ intro/related/limitations/conclusion, then `main.tex` assembly + a local LaTeX b
 /home/zeyu (the server has no latex). Deck regeneration
 (`talk/beyond_attention_paradigms.pptx` per the edit list embedded in `talk/speaker_notes.md`)
 is still open. **No data cells remain — do not launch training.**
+
+
+## 2026-07-31 tick — PAPER2 DRAFTING STEP 4: §8 (hardware implications) drafted
+
+Zero-GPU writing tick (all 8 A800s idle, 0 compute apps, no ssm3way.py procs; no data cells
+remain). `paper2/sec08_hardware.tex` added (~110 lines), per the skeleton's §8 plan, reusing
+memo v3 §9 language. Three subsections:
+
+- **§8.1 split recommendation** — CIM/analog state for statistical/low-retention workloads
+  (char-LM: 1.60× proxy-energy for +0.160 bpc / 5.3% vs the noise-regularized digital
+  baseline); exact digital state + spiked output for precise recall (margins 0.87 / 0.42 vs
+  the regularized reference at M=16/32); spiking the state is a NON-OPTION for memory-bearing
+  workloads (exactly chance at M=32 AND M=64: 0.0623±0.0012 / 0.0623±0.0005 vs 0.0625).
+- **§8.2 ADC-floors-θ co-design constraint (E6)** — LSB q = 2r/2^b = 0.125 at 6 bits over
+  ±4 rails; every θ < q bit-identical (θ=0.05 vs 0.10); event rate floored by converter
+  precision, so sparsity and state precision trade off in hardware. Plus θ non-transfer:
+  char-LM θ=1.0 collapses analog on copy (emits 3–8%); usable copy window 0.125 < θ ≲ 0.3;
+  θ=0.5 over-gates to chance.
+- **§8.3 energy honesty** — proxy licenses ONE claim (char-LM 446k vs 712k pJ/tok) and blocks
+  two: analog on copy loses both axes to spikeout (M=16: 0.87 @ 122.9k vs 0.50 @ 246.7k;
+  M=32: 0.42 @ 125.2k vs 0.28 @ 231.0k; structural reason = event pricing only on W_mix),
+  and cheapness-as-merit (spikestate M=32 = cheapest cell, 102k pJ/tok, retains exactly
+  nothing). Closes with the unpriced analog storage element + converter (state density 0.994)
+  and points to measured Loihi-2/SpiNNaker-2 energy as the next step.
+
+Numbers verified against published entries 83e110a, a9f36d2, 7a10a0d, bb79f7f, a8e7a7c,
+8e74f48, 159e341, 5bb7bcc/8d050cb/48510c8 — nothing re-derived. Claims discipline checked by
+grep: no "analog beats digital" outside retraction context, no "bound confirmed", no 190×,
+copy margins quoted vs the regularized reference only.
+
+Remaining writeup: intro (§1) / related (§2) / limitations (§9) / conclusion (§10), then
+main.tex assembly + LaTeX build LOCALLY on /home/zeyu; deck regeneration
+(`talk/beyond_attention_paradigms.pptx` per the edit list in `talk/speaker_notes.md`) still
+open. No data cells remain — do not launch training.

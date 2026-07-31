@@ -1,0 +1,104 @@
+% Paper 2, Section 8 — Hardware implications (evidence E6 + the energy columns of E1–E3).
+% Numbers verified against ledger entries 83e110a (ADC-step-floors-theta), a9f36d2 (usable
+% theta window on copy; theta=0.5 collapse), 7a10a0d (theta non-transfer across tasks),
+% bb79f7f (char-LM energy/quality tradeoff vs regularized baseline), a8e7a7c / 8e74f48 /
+% 159e341 (copy energy columns), 5bb7bcc / 8d050cb / 48510c8 (margins vs regularized reference).
+% CLAIMS DISCIPLINE — forbidden in this section, per the skeleton's claims ledger:
+%   "analog beats digital" (retracted); any pJ number presented as a silicon measurement
+%   (all energy figures are the 45nm Horowitz MAC/AC proxy); quoting copy margins vs the
+%   PLAIN digital reference (corrected margins vs the noise-regularized reference only).
+
+\section{Hardware implications}
+\label{sec:hardware}
+
+The preceding sections were organized around a scientific question --- which datapath
+degradations does a workload tolerate? This section reads the same results as design
+guidance: which route should carry a state-space model on neuromorphic silicon, and what
+co-design constraints bind once a route is chosen.
+
+\subsection{The recommendation splits by workload}
+\label{sec:hardware-split}
+
+No route wins both tasks, and the ordering inversion of Section~\ref{sec:copy} is stable at
+three seeds on both sides, so the recommendation cannot be collapsed to a single answer.
+
+\emph{Statistical sequence workloads with low retention demand} --- perception streams,
+sensor fusion, language-like statistics --- tolerate a lossy recurrent state, and there the
+analog/compute-in-memory route is the fit: on char-LM it holds the state in analog dynamics,
+communicates on 61\% of steps, and pays $+0.160$ bpc (5.3\%) against a noise-regularized
+digital baseline for a $1.60\times$ proxy-energy reduction
+(Section~\ref{sec:charlm-claim}). This is a tradeoff, not a free lunch, but it is the only
+cell in either task where a neuromorphic datapath buys energy at single-digit quality cost.
+
+\emph{Precise-recall workloads} invert the choice. On copy the analog route loses to
+output-spiking on \emph{both} axes (Section~\ref{sec:hardware-energy}), and the route that
+survives is the one SPikE-SSM instantiates: keep the state in an exact
+digital datapath and spike only the output, which retains 0.87 and 0.42 of the regularized
+baseline's above-chance margin at $M{=}16$ and $M{=}32$ while emitting on $\sim$45\% of steps.
+
+\emph{Carrying the recurrent state in spikes is a non-option for any memory-bearing
+workload.} At $M{=}32$ and again at $M{=}64$ the spiking-state variant sits at exactly
+chance ($0.0623\pm0.0012$ and $0.0623\pm0.0005$ against 0.0625) --- a 1-bit state does not
+degrade precise recall, it eliminates it (Section~\ref{sec:copy-floor}). The live design
+fork on real silicon is therefore binary: an exact digital state with a spiked output, or an
+analog state that accepts the loss and gains the event sparsity. Which side of the fork is
+right is set by the workload's retention demand, not by the hardware.
+
+\subsection{Event sparsity and state precision are not independent knobs}
+\label{sec:hardware-adc}
+
+The analog route's operating point is set by the send-on-delta threshold $\theta$, and the
+natural assumption is that $\theta$ is a free knob: lower it for quality, raise it for
+sparsity. Two measured constraints break that assumption.
+
+First, \emph{the ADC step floors the event rate}. The simulated analog state is quantized to
+$b{=}6$ bits over rails $\pm r$ with $r{=}4$, giving a least significant bit of
+$q = 2r/2^{b} = 0.125$, and the send-on-delta comparison is made on the \emph{quantized}
+state. Every $\theta$ below $q$ is therefore inoperative: $\theta{=}0.05$ and
+$\theta{=}0.10$ produce bit-identical results on every metric to all recorded digits. Below
+one LSB the quantizer, not the threshold, decides which state changes are visible, so the
+minimum achievable event rate is set by converter precision. Buying a lower event rate means
+spending bits --- a converter area and energy cost --- not tuning a threshold. This couples
+two quantities a designer would prefer to optimize separately, and it is invisible in any
+formulation that treats the state as continuous.
+
+Second, \emph{$\theta$ does not transfer across workloads}. The char-LM-calibrated
+$\theta{=}1.0$ collapses the analog variant to chance on copy, emitting on only 3--8\% of
+steps; the usable window on copy is $0.125 < \theta \lesssim 0.3$, and $\theta{=}0.5$
+already over-gates to chance. The window's lower edge is the LSB constraint above; its upper
+edge is task-dependent. An analog SSM deployment therefore needs per-workload threshold
+calibration, and a fixed-$\theta$ part cannot serve both workload classes of
+Section~\ref{sec:hardware-split}.
+
+\subsection{What the energy proxy does and does not license}
+\label{sec:hardware-energy}
+
+All energy figures in this paper are the 45nm proxy of Section~\ref{sec:energy} (4.6 pJ per
+MAC, 0.9 pJ per AC); none are silicon measurements. Read under that caveat, the proxy
+licenses one claim and blocks two others.
+
+It licenses the char-LM tradeoff: analog at $\theta{=}0.15$ costs 446k pJ/token against the
+regularized digital baseline's 712k --- a $1.60\times$ reduction, purchased for $+0.160$
+bpc. The digital baseline's noise regularizer is training-time only, so its inference
+datapath and energy are identical to the plain baseline's; the comparison is fair on both
+axes.
+
+It blocks any analog energy claim on copy. At $M{=}16$ the output-spiking variant keeps
+0.87 of the regularized margin at 122.9k pJ/token ($3.2\times$ below digital's 398.0k),
+while analog keeps 0.50 at 246.7k --- worse on quality \emph{and} energy; at $M{=}32$ the
+pattern repeats (0.42 at 125.2k versus 0.28 at 231.0k). The datapath reason is structural:
+the analog variant earns event pricing only on the recurrent mixing matrix, while its input
+and output projections remain MAC-priced, so its proxy energy cannot approach
+output-spiking's unless most parameters sit in the recurrence.
+
+And it blocks reading cheapness as merit. The cheapest cell in the entire copy table is the
+spiking-state variant at $M{=}32$ (102k pJ/token) --- the same cell that retains exactly
+nothing. A pJ/token figure is meaningless without the quality it purchased.
+
+Finally, the proxy itself omits costs that fall specifically on the analog route: the analog
+state is dense (state density 0.994), and each unit carries an analog storage element and a
+converter that the MAC/AC accounting does not price. Matching variants on emitted rate
+matches wire traffic, not state-holding cost (Section~\ref{sec:metrics}). The honest summary
+for a designer is that the analog route's advantage is measured here in communication and
+quality, and its storage-side costs remain to be priced on silicon --- which is why measured
+Loihi-2/SpiNNaker-2-class energy, not more simulation, is the natural next step.
