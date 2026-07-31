@@ -1,0 +1,94 @@
+% Paper 2, Section 2 — Related work.
+% Literature analysis lifted from talk/imam_ssm_memo_v3.md sections 1-3 (commit fb63e23); the
+% SPikE-SSM and LMU papers were read in full, CIM-SSM is paywalled and its numbers are NOT quoted.
+% No experimental figure in this section is re-derived; the two of ours that appear
+% (spikeout state rate 1.0000; the char-LM tradeoff) are copied from a134f05 / bb79f7f.
+
+\section{Related work}
+\label{sec:related}
+
+\subsection{State-space models}
+
+Structured SSMs~\citep{s4,s4d} replaced the nonlinear recurrence of an RNN with a linear one
+whose state transition is diagonal (after reparameterization), which is what makes them both
+trainable at length and, for our purposes, physically realizable: a diagonal linear recurrence is
+a bank of independent leaky integrators. We use an S4D-real--style diagonal decay as the shared
+backbone of all four variants, which is the simplest form that keeps the comparison about the
+datapath rather than about the recurrence's expressivity.
+
+The design predates the current line. The Legendre Memory Unit~\citep{lmu} derives an optimal
+linear delay system from a Pad\'e approximant and projects it onto a Legendre basis, arriving at
+a linear SSM independently of the HiPPO/S4 lineage. It matters here for a reason beyond priority:
+the LMU was implemented through the Neural Engineering Framework on spiking neuron populations
+and \emph{deployed on both Loihi and Braindrop} --- a digital spiking chip and an analog
+mixed-signal one --- reaching $97.15\%$ on psMNIST against an LSTM's $89.86\%$. Running an SSM on
+neuromorphic hardware, including in a non-spiking analog form, is therefore an existence proof
+rather than a proposal. The open question, and ours, is what each route costs.
+
+\subsection{The three datapath routes}
+
+\paragraph{(a) Digital SSMs on digital fabric.} The reference point: run the exact linear
+recurrence in a digital datapath, optionally quantized. QS4D~\citep{qs4d} studies quantization of
+diagonal SSMs for exactly this deployment target. Our \texttt{digital} variant is this route at
+full precision, and it is the baseline every margin in this paper is measured against.
+
+\paragraph{(b) Continuous state, spiking output.} The current ``spiking SSM'' line keeps the
+linear state at full precision and applies a spiking nonlinearity only to what leaves the
+recurrence. SPikE-SSM~\citep{spikessm} is the clearest instance: a refractory-LIF nonlinearity on
+an S4D backbone, with a continuous state $h_t$. Its reported sparsity figures (around $8\%$ on
+LRA, $24.5\%$ on WikiText) are therefore \emph{output} sparsity, and its cost is a recall gap
+(WikiText perplexity $33.2$ against S4's $21.0$). This distinction is not a technicality; it is
+the reason a firing-floor argument about state-carrying spikes does not apply to this route at
+all. Our \texttt{spikeout} variant reproduces the design point, and reproduces the signature: its
+measured recurrent-state activity is exactly $1.0000$ in every cell we ran, on both tasks and at
+every memory load --- all of its sparsity is in the output, none of it in the state.
+
+\paragraph{(c) Native analog state.} Here the device physics \emph{is} the recurrence. CIM-SSM
+\citep{cimssm} implements a non-spiking continuous diagonal SSM in a memristor crossbar, using
+the device's native short-term-memory relaxation as the state decay --- the exponential
+relaxation of the device is $e^{At}$, so there is no discretization mismatch to manage, and
+$Ax + Bu$ is an in-memory matrix--vector multiply. Related analog compute-in-memory work
+addresses the robustness side of the same substrate~\citep{imssa,hpd}, and LMU-on-Braindrop is
+the earlier precedent. We treat this route in simulation, with the analog storage element's
+imperfections modelled explicitly (rails, additive state noise, finite state precision) and
+communication by send-on-delta graded events; \S\ref{sec:protocol} states exactly what is and is
+not modelled. We do not quote CIM-SSM's reported numbers, which are behind a paywall we could
+not clear.
+
+\subsection{What is missing, and what this paper adds}
+
+Two gaps motivate the study.
+
+First, \textbf{the routes are never compared under matched capacity}. Each of (a), (b), (c) is
+developed in its own papers against its own baseline, typically a full-precision model of
+different size trained under a different schedule, so their efficiency claims are
+route-internal and not commensurable. Our four variants share every tensor and every
+hyperparameter; the only difference between them is where a nonlinearity sits.
+
+Second, \textbf{energy claims are made at whatever operating point the method happens to reach}.
+A variant that emits on $27\%$ of steps and one that emits on $65\%$ are not comparable on quality
+without controlling the rate. We therefore sweep the analog event threshold until the analog
+variant emits at each spiking comparator's own measured rate, and compare there
+(\S\ref{sec:charlm-matched}); on the recall task the three non-digital variants land within
+$0.41$--$0.50$ emission natively, so the comparison is already matched.
+
+A third issue is one we created for ourselves and report because it changes published-looking
+numbers: \textbf{the comparator's regularization}. The lossy analog state acts as a stochastic
+regularizer at small scale, so an analog variant compared against an untuned digital baseline is
+credited for a benefit that has nothing to do with its datapath. Giving the baseline the same
+training-time state noise removes it, and turns an apparent quality win into an energy-for-quality
+tradeoff (\S\ref{sec:charlm-control}). We have not seen this control run in the spiking- or
+analog-SSM literature, and the bias it introduces runs in the same direction everywhere: in favour
+of the neuromorphic variant.
+
+\subsection{Relation to paper 1}
+
+Paper~1~\citep{paper1} established, on a controlled architecture-fixed protocol, that a recurrent
+network carrying its state in spikes cannot sparsify below roughly $50\%$ activity on a
+character-LM task, while feed-forward perception sparsifies to $5\%$ and a spiking Transformer to
+$2\%$ --- a firing ceiling specific to \emph{recurrence}. It also derived the bound
+$\rho \geq H_b^{-1}(\cdot)$ as a candidate explanation. This paper takes up the question that
+result raises --- if spikes are a bad way to carry recurrent state, what datapath \emph{should}
+carry it? --- and, in \S\ref{sec:bound}, reports that the bound itself does not survive a direct
+empirical test at this scale. The empirical ceiling from paper~1 is a measurement and stands; the
+bound was a prediction about \emph{why}, and it is the prediction that fails.

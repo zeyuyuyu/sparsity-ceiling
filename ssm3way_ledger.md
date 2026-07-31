@@ -1564,3 +1564,59 @@ Remaining writeup: intro (§1) / related (§2) / limitations (§9) / conclusion 
 main.tex assembly + LaTeX build LOCALLY on /home/zeyu; deck regeneration
 (`talk/beyond_attention_paradigms.pptx` per the edit list in `talk/speaker_notes.md`) still
 open. No data cells remain — do not launch training.
+
+## 2026-07-31 tick — PAPER2 DRAFTING STEP 5: §1 (introduction) + §2 (related work) drafted, zero-GPU
+
+State at tick start: GPUs 2/3/5 busy with **another user's** jobs (17.5 GB, ~100% util; no
+`ssm3way.py` processes anywhere), GPUs 4/6/7 idle, 0/1 holding another user's idle allocations.
+No jobs of ours running; the empirical arm remains CLOSED (no data cells). Writing tick, per the
+standing verdict.
+
+**Drafted:** `paper2/sec01_intro.tex` (129 lines) and `paper2/sec02_related.tex` (94 lines),
+following the skeleton's §1/§2 plans. Discipline held: every experimental figure quoted is copied
+from a published ledger entry (a134f05, bb79f7f, 48510c8/8d050cb/5bb7bcc, 471f113, 83e110a) —
+nothing re-derived, no aggregator re-run needed for these sections.
+
+**§1 as drafted:** hook = the linear recurrence is what analog silicon physically is, with
+LMU-on-Loihi/Braindrop as the existence proof; the three-way datapath fork (spike the state /
+spike the output / hold the state in analog) as the paper's organizing question; the gap = no
+controlled comparison at matched parameters or matched communication rate. Then the four
+contributions, each pointing at its section. **Both retractions are stated in the introduction,
+not buried:** the "analog beats digital" reading is presented as retracted with the control that
+killed it (−0.309 bpc noise benefit on the baseline = 2.1× the apparent analog advantage), and
+the surviving claim is given as the tradeoff (1.60× proxy energy for +0.160 bpc / 5.3%); the
+firing-floor bound is introduced as a pre-registered test whose confirmation criterion was
+**refuted** (12× floor swing, ρ falls 0.496→0.250, margin kept rises 0.079→0.200). Also states
+up front that spikestate is at exactly chance at M=32 *and* M=64 while being the cheapest
+variant, and that the weight-decay dissociation (+0.0047±0.0110, i.e. zero) pins the noise
+mechanism to state-level stochasticity — the one point that argues *for* analog silicon on
+non-energy grounds. Closing scope paragraph puts the simulation / 45nm-proxy / unpriced-converter
+limits in the intro rather than only in §9.
+
+**§2 as drafted:** lifted from memo v3 §1–3 as planned. SSM background (S4/S4D diagonal
+recurrence = a bank of leaky integrators, which is why it is physically realizable) + LMU as the
+pre-HiPPO linear SSM already deployed on Loihi *and* Braindrop (psMNIST 97.15% vs LSTM 89.86%).
+The three routes with their representative work: QS4D for (a); SPikE-SSM for (b), with its
+sparsity explicitly labelled as *output* sparsity (LRA ~8%, WikiText 24.5%, ppl 33.2 vs S4's
+21.0) — the reason a state-carrying firing-floor argument does not apply to it, and which our
+`rate_state` = 1.0000 measurement reproduces; CIM-SSM (+ IMSSA/HPD for analog robustness) for
+(c). **CIM-SSM's reported numbers are deliberately NOT quoted** (paywalled, unverified) — the
+memo's same discipline. Then the two literature gaps the paper fills (no matched-capacity
+comparison; energy claims made at uncontrolled operating points) plus a third we created
+ourselves: **the comparator's regularization**, noted as a control we have not seen run in this
+literature, whose bias runs in favour of the neuromorphic variant everywhere. Final subsection
+positions against paper 1 (its ~50% char-LM ceiling is a *measurement* and stands; the bound was
+the prediction about *why*, and that is what fails in §7).
+
+**Claims-discipline check run, not assumed:** grepped both files for the forbidden strings. §2 is
+clean; §1's three hits are the header-comment list (2) and one occurrence inside the sentence that
+performs the retraction — the same pattern as §7/§8.
+
+**Assembly finding (useful for the next tick):** the entire paper cites exactly **9 keys** —
+`paper1`, `s4`, `s4d`, `lmu`, `spikessm`, `cimssm`, `qs4d`, `imssa`, `hpd` — and all of them were
+introduced in §1/§2; §3–§8 cite only `paper1`. So `refs.bib` is a 9-entry file, cheap to write.
+
+**Remaining writeup steps:** §9 limitations + §10 conclusion (skeleton has both plans), then
+`refs.bib` (9 keys) and `main.tex` assembly, then a LaTeX build **locally on /home/zeyu** (the
+server has no latex). Deck regeneration (`talk/beyond_attention_paradigms.pptx` per the edit list
+in `talk/speaker_notes.md`) still open. **No data cells remain — do not launch training.**

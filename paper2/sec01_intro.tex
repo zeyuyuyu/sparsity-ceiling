@@ -1,0 +1,129 @@
+% Paper 2, Section 1 — Introduction.
+% Every number here is copied from published ledger entries (ssm3way_ledger.md); nothing re-derived.
+% Sources for the figures quoted below: a134f05 (char-LM matched-rate table), bb79f7f (regularization
+% control + retraction), 48510c8/8d050cb/5bb7bcc (copy margins vs the noise-regularized reference,
+% quantizer contrast), 471f113 (final shrink-H bound table), 83e110a (ADC-floors-theta).
+% CLAIMS DISCIPLINE — forbidden anywhere in this paper, per the skeleton's claims ledger:
+%   "analog beats digital" (retracted, bb79f7f); "the bound is confirmed" / any contrapositive
+%   claim (retracted, cef2101); any "190x" floor swing (corrected to 12x, 471f113); any copy
+%   margin quoted without the regularized-reference correction; any pJ figure presented as a
+%   silicon measurement rather than a 45nm proxy.
+
+\section{Introduction}
+\label{sec:intro}
+
+State-space models (SSMs) look like the natural sequence engine for neuromorphic hardware. An
+SSM's core is a \emph{linear} recurrence, $\dot{x} = Ax + Bu$, $y = Cx$ --- a continuous-time
+dynamical system rather than a stack of nonlinear matrix products. Analog and mixed-signal
+substrates already \emph{are} linear dynamical systems: a leaky capacitor, or a memristor's
+short-term relaxation, physically implements $e^{At}$ without anyone having to compute it. The
+pairing has a working existence proof: the Legendre Memory Unit, itself a linear SSM, has been
+deployed on both a digital spiking chip and an analog mixed-signal one~\citep{lmu}.
+
+But ``an SSM on neuromorphic hardware'' is not one design. It hides a three-way fork over
+\emph{where in the datapath precision is given up}:
+
+\begin{enumerate}
+  \item \textbf{spike the state} --- carry the recurrent state itself in binary events, the
+    canonical spiking-RNN design;
+  \item \textbf{spike the output} --- keep the linear state exact and binarize only what leaves
+    the recurrence, the design point of the current spiking-SSM literature~\citep{spikessm};
+  \item \textbf{hold the state in analog} --- keep the state continuous but accept the
+    imperfections of a physical storage element, and communicate by events, the
+    compute-in-memory route~\citep{cimssm}.
+\end{enumerate}
+
+Each route has papers arguing for it, and each reports energy savings against a baseline of its
+own choosing. What does not exist is a controlled comparison: the three routes have never been
+run as the \emph{same} model, at matched parameters, on the same tasks, at matched communication
+rates. Without that, ``spiking SSMs are efficient'' and ``analog SSMs are efficient'' are not
+comparable statements, and a hardware designer choosing a datapath has no basis for the choice.
+
+This paper supplies that comparison, and its result is that the choice is
+\emph{workload-conditional}. We build one SSM in four parameter-matched implementations --- the
+three routes above plus the exact digital baseline --- in which every variant owns an identical
+set of tensors and only the \emph{position} of the nonlinearity moves. We run them on a
+statistical sequence task (character-level language modelling) and a precise-recall task
+(synthetic copy at three memory loads), at three seeds throughout, and we compare them at matched
+emitted-event rates so that no variant is credited for merely sitting at a sparser operating
+point.
+
+\paragraph{The ranking inverts.} On character-LM the analog-state route is the best neuromorphic
+datapath and output-spiking is the worst; on copy the order is exactly reversed, and the
+spiking-state route does not degrade precise recall so much as \emph{eliminate} it, sitting at
+exactly chance accuracy at 32 and at 64 symbols of memory load while being the cheapest variant
+by the energy proxy. Neither non-digital route dominates, so there is no single number of the form
+``analog retains $X\%$ of digital quality'' to quote.
+
+\paragraph{One principle explains both orderings.} The obvious candidate explanation --- that what
+matters is how exact the recurrent \emph{state} is --- fails: the output-spiking variant has the
+most exact state of the three on \emph{both} tasks (its measured state activity is exactly
+$1.0000$ in every cell we ran) yet it is best on one task and worst on the other. What does
+predict both orderings is a claim about the workload rather than the datapath:
+\begin{quote}
+\emph{a neuromorphic SSM datapath is cheap exactly when it degrades the part of the computation
+the workload does not depend on.}
+\end{quote}
+Statistical sequence modelling needs an exact graded \emph{output} distribution and tolerates a
+lossy state; precise recall needs an exact \emph{state} and tolerates a binarized output. We test
+this out of sample with a degradation neither task was designed around: the same 6-bit state
+quantizer costs $-0.002$~bpc on char-LM (nothing) and $+0.369$/$+0.385$~bpc on copy at $M{=}16$
+and $M{=}32$. That test is post-hoc identified, and we label it as such throughout
+(\S\ref{sec:principle-quantizer}).
+
+\paragraph{We report our own retraction.} An intermediate version of the char-LM result had the
+analog-state SSM \emph{beating} the digital baseline by $0.149\pm0.014$~bpc. A control showed that
+finding to be an artifact of an under-regularized comparator: giving the digital baseline the same
+training-time state noise the analog datapath supplies for free is worth $-0.309$~bpc, which is
+$2.1\times$ the entire apparent analog advantage. The claim is retracted, and the surviving
+char-LM claim is a tradeoff rather than a win: \textbf{the analog datapath buys a $1.60\times$
+proxy-energy reduction for a $+0.160$~bpc ($5.3\%$) quality cost} against a properly regularized
+reference. Every margin figure in the paper, on both tasks, is stated against that regularized
+reference. Weight decay applied to the same baseline is worth exactly zero
+($+0.0047\pm0.0110$~bpc), which dissociates the effect from generic capacity control and pins it
+to state-level stochasticity in the recurrence --- a mechanism the analog datapath supplies
+physically, and one of the few points that argue \emph{for} analog silicon on grounds other than
+energy.
+
+\paragraph{And we report a negative on our own theory.} Paper~1~\citep{paper1} derives a
+firing-floor bound: a recurrent state carried in spikes cannot go below an activity
+$\rho \geq H_b^{-1}(M\log_2 K / H)$ set by the memory the task demands. We designed a
+pre-registered test of it --- shrink the state width $H$ at fixed memory load, sweeping the
+predicted floor $12\times$ while keeping the task learnable for the digital reference at every
+width --- and the pre-registered confirmation criterion was refuted. Measured state activity
+\emph{falls} ($0.496 \to 0.250$) as the predicted floor rises, and spiking-state accuracy
+\emph{improves} as its own certified capacity shrinks (margin kept $0.079 \to 0.200$). An
+information bottleneck cannot produce that ordering; an optimization pathology can. We could not
+construct a regime in which the bound binds on a network that still learns the task, so the bound
+stays in this paper as theory with a \emph{tested} scope limit, not as validated theory
+(\S\ref{sec:bound}). The empirical rule it was meant to justify --- do not carry a compressed
+recurrent state in spikes --- survives, but on the direct evidence of \S\ref{sec:copy} rather than
+on the bound.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item A \textbf{parameter-matched four-variant protocol} for the neuromorphic-SSM datapath fork:
+    identical tensors, only the nonlinearity's position moves, with emitted-event rate and state
+    activity reported separately so that wire traffic is never confused with state density
+    (\S\ref{sec:protocol}).
+  \item \textbf{Two-task, matched-communication-rate evidence that the variant ranking inverts}
+    across workloads, at three seeds on both tasks and three memory loads on the recall task
+    (\S\ref{sec:charlm}, \S\ref{sec:copy}).
+  \item \textbf{The datapath-degradation principle}, which predicts both orderings where state
+    fidelity alone does not, with the quantizer contrast as an out-of-sample (post-hoc
+    identified) test (\S\ref{sec:principle}).
+  \item \textbf{Two honest negatives and a co-design constraint}: the firing-floor bound is not
+    empirically validated by this architecture at this scale in either direction
+    (\S\ref{sec:bound}); the ``analog beats digital'' reading is retracted after a regularization
+    control (\S\ref{sec:charlm-control}); and on an analog datapath the event threshold is floored
+    by the state quantizer's least significant bit ($0.125$ at 6 bits over $\pm 4$ rails), so
+    event sparsity and state precision are not independent knobs but a converter-area tradeoff
+    (\S\ref{sec:hardware}).
+\end{enumerate}
+
+\paragraph{Scope.} Everything here is simulation at small scale --- at most $1.7\times10^5$
+parameters, short training schedules, two tasks --- and every energy number is a 45\,nm
+operation-count proxy, not a measurement on silicon. The analog storage element and its converter,
+which are real area and power costs, are not priced by that proxy at all. We state these limits
+where they bite rather than only in \S\ref{sec:limitations}, because they bound what the
+recommendation in \S\ref{sec:hardware} can support.
