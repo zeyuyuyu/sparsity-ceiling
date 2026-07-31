@@ -1631,3 +1631,62 @@ All 8 A800s idle (1 MiB, 0% util), no `ssm3way.py` procs; empirical arm remains 
 - Claims discipline verified by grep, not assumed: body of both files has no "analog beats digital", no "bound confirmed"/contrapositive, no "190", copy margins referenced only via the corrected sections.
 - Every figure quoted (−0.309, +0.160/5.3%, 1.60×, 0.994, −0.002 vs +0.369/+0.385, ≥+0.37, 12×, 2.7× chance at M=64, +0.005±0.011 wd) copied from published ledger entries bb79f7f / 48510c8 / 471f113 / 750b1bb — nothing re-derived.
 - **All 10 sections are now drafted. Remaining: refs.bib (9 keys: paper1, s4, s4d, lmu, spikessm, cimssm, qs4d, imssa, hpd), main.tex assembly, LaTeX build LOCALLY on /home/zeyu (server has no latex); deck regeneration still open. No data cells — do not launch training.**
+
+## 2026-07-31 tick — PAPER2 ASSEMBLED AND IT COMPILES: `main.tex` + `refs.bib` written, full 10-section build verified locally (15 pp, clean)
+
+Zero-GPU tick. All 8 A800s idle (0–4 MiB, 0% util), no `ssm3way.py` processes, no data cells
+remain — writeup-only per the standing verdict. Commits **7fc91b2** (assembly) and **1f8eb48**
+(build fixes), pushed to `origin/main` (verified: `git status -sb` shows no ahead marker).
+
+**What was written.**
+- `paper2/main.tex` (95 lines): `article` 10pt preamble (geometry, lmodern, amsmath, booktabs,
+  graphicx, microtype, natbib round, hyperref), title/author (Zeyu Wang, Georgia Tech —
+  matching paper 1), a ~330-word abstract, and `\input` of sec01…sec10 in order, then
+  `\bibliography{refs}`. The claims-discipline header comment from the section files is repeated
+  at the top of `main.tex` so the assembly file carries the same constraints.
+- `paper2/refs.bib` (78 lines, exactly the 9 cited keys: `paper1, s4, s4d, lmu, spikessm,
+  cimssm, qs4d, imssa, hpd`).
+
+**Abstract content — every figure copied from published ledger entries, nothing re-derived.**
+It states, in this order: matched-parameter + matched-communication-rate protocol, 2 tasks,
+3 seeds; the ranking **inverts** between tasks; char-LM surviving claim = **1.60× proxy-energy
+cut for +0.160 bpc (5.3%)** with the **retraction performed in the abstract itself** (baseline
+state noise σ=0.02 is worth −0.309 bpc = 2.1× the apparent advantage); copy margins quoted
+**already corrected against the noise-regularized reference** (spikeout 0.87/0.42, analog
+0.50/0.28, spikestate exactly chance at M=32 and M=64 while cheapest); the
+datapath-degradation principle plus its out-of-sample **post-hoc-labelled** quantizer contrast
+(−0.002 char-LM vs +0.369/+0.385 copy); the bound arm as a **negative** with the corrected
+**12×** floor swing (ρ 0.496→0.250, margin kept rising) and the "width-determined, not
+information-determined" wording; and a closing scope sentence (45 nm proxy from simulation, not
+silicon; analog storage element and converter unpriced).
+
+**BIBLIOGRAPHY HONESTY — deliberate, do not "fix" by guessing.** The memo v3 reading list marks
+`qs4d` (2507.06079), `imssa` (2412.20215) and `hpd` (2508.11935) as *identified via search, not
+read in full*. Their titles/authors are therefore **left unasserted**: each entry carries the
+arXiv ID plus an explicit "metadata to be verified before submission" note and a `key` field for
+sorting, rather than an invented title/author list. `cimssm` carries its known
+title/authors/venue but repeats that its quantitative results are **not quoted** (paywalled).
+`paper1` is an arXiv preprint with **no ID yet** (submission `submit/7882862` still unannounced),
+so the note gives the repo URL instead of a number — that ID must be filled in before submission.
+
+**Build verified locally on /home/zeyu (server has no LaTeX):** sources pulled with
+`ssh … 'tar czf - -C /work/zeyuwang/sparsity-ceiling paper2'` (git clone not needed),
+`pdflatex → bibtex → pdflatex ×2`. Result: **exit 0, no undefined citations or references, no
+multiply-defined labels, ZERO overfull/underfull box warnings, 15 pages, 520 kB**. Two real build
+fixes were needed and are committed: (1) `microtype`'s font expansion aborts fatally on this
+box's non-scalable default fonts — `\usepackage{lmodern}` fixes it (first pass died with
+"auto expansion is only possible with scalable fonts", no PDF produced); (2) the three
+metadata-unasserted bib entries have no author to sort by, so BibTeX warned — added `key` fields.
+Artifacts kept at `/home/zeyu/paper2_build/` (all sources + `main.pdf`) for the next tick.
+
+**LENGTH FINDING — the draft is 15 pp single-column against a 6–8 pp target in the skeleton.**
+That is a real gap, not a rounding error: the paper carries 3 large tables and 10 sections at
+10pt one-column with 1in margins. Options for the next tick, cheapest first: (a) switch to a
+two-column style (roughly halves it; also what cs.NE arXiv submissions usually look like),
+(b) move the shrink-H table and the copy M=64 column to an appendix, (c) prose trimming. Do
+**not** solve it by dropping caveats or retraction language — those are load-bearing.
+
+**Remaining writeup items:** (1) length/format pass per above; (2) fill `paper1`'s arXiv ID once
+announced and verify the three TODO bib entries; (3) regenerate
+`talk/beyond_attention_paradigms.pptx/.pdf` per the edit list embedded in `talk/speaker_notes.md`
+(still pre-retraction). **No data cells remain — do not launch training.**
