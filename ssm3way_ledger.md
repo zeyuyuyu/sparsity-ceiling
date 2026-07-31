@@ -1789,3 +1789,34 @@ tick does not redo it.
 the three deliberately-unasserted bib entries (qs4d / imssa / hpd), (2) nothing else is open — paper 2
 compiles clean at 13 pp, memo v3 is send-ready, speaker notes and deck are both post-retraction.
 **No data cells remain — do not launch training.**
+
+
+## 2026-07-31 tick — PAPER 1 IS ANNOUNCED ON ARXIV AND PAPER 2'S BIBLIOGRAPHY IS NOW FULLY ASSERTED (zero-GPU)
+
+**Paper 1 has its arXiv ID: `arXiv:2607.26648` (v1)** — "The Sparsity Ceiling: Where Spiking
+Networks Can and Cannot Trade Activity for Energy", Zeyu Wang, confirmed via the arXiv API
+title search (`ti:"sparsity ceiling"`, single hit). The submit/7882862 queue wait is over.
+
+**The three deliberately-unasserted bib entries are verified against the arXiv API listing**
+(`id_list=2507.06079,2412.20215,2508.11935`, fetched 2026-07-31) and filled in:
+- `qs4d` = QS4D: Quantization-aware training for efficient hardware deployment of structured
+  state-space sequential models — Siegel, Yang, Bouhadjar, Fabre, Neftci, Strachan (2025).
+- `imssa` = IMSSA: Deploying modern state-space models on memristive in-memory compute
+  hardware — Siegel, Yang, Strachan (2024).
+- `hpd` = HPD: Hybrid Projection Decomposition for Robust State Space Models on Analog CIM
+  Hardware — Feng, Zhou, Lyu, Liu, Liu, Wong, Kang (2025).
+All three titles are consistent with how sec02 classifies them (qs4d → route (a) quantized
+digital; imssa/hpd → route (c) analog CIM), so no prose change was needed. The "not read in
+full" honesty note stays in refs.bib — verification covers metadata, not content.
+
+**paper1's refs.bib note now carries arXiv:2607.26648** instead of the repo-URL placeholder.
+
+**Rebuild verified locally on /home/zeyu** (server has no latex): full pdflatex+bibtex cycle,
+exit 0, ZERO overfull boxes, zero undefined citations/references, 13 pp two-column, 531 kB.
+Grep confirmed no tex source contains stale "to be verified"/"unannounced" language.
+
+**With this, the LAST remaining writeup item from the 868f067/e9615bc tick list is closed:**
+paper 2 compiles clean with a fully-asserted 9-entry bibliography, memo v3 is send-ready, deck
+and speaker notes are post-retraction. Open decisions that are the USER'S, not a tick's:
+send memo v3 to Imam; decide whether/when to put paper 2 on arXiv. No data cells — do not
+launch training. Infra: arXiv API over plain HTTP returns empty from this box — use HTTPS.
