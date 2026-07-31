@@ -1,0 +1,105 @@
+% Paper 2, Section 5 — Copy: the precise-recall workload (evidence E3).
+% Numbers regenerated from `python agg_copy.py 30` at drafting time and verified against ledger
+% entries a8e7a7c (M=16), 8e74f48 (M=32), 159e341 (M=32 floor control), 5bb7bcc/8d050cb/48510c8
+% (regularization control + corrected margins). M=64 column from the completed ep30 row.
+% CLAIMS DISCIPLINE: M=16/32 margins are quoted against the NOISE-REGULARIZED reference; the
+% M=64 column has NO regularized reference (the control ran at L in {33,65} only) and the
+% digital baseline is near-floor there — M=64 is reported for completeness, not used for claims.
+
+\section{Copy: the precise-recall workload}
+\label{sec:copy}
+
+The copy task inverts every conclusion of Section~\ref{sec:charlm}, and the inversion is the
+pivot of this paper. The model must reproduce $M \in \{16, 32, 64\}$ symbols from a $K{=}16$
+alphabet after a delay (chance accuracy $0.0625$, chance bpc $4.000$); unlike character-level
+language modeling, success requires \emph{precise retention} of specific symbols rather than
+sequence statistics.
+
+\subsection{Results and the ranking inversion}
+\label{sec:copy-results}
+
+Table~\ref{tab:copy} gives the three-seed comparison at all three memory loads. ``Margin
+kept'' is the fraction of the reference baseline's above-chance accuracy margin a variant
+retains --- the appropriate metric when absolute accuracies are low. Following
+Section~\ref{sec:controls}, the reference at $M{=}16$ and $M{=}32$ is the
+\emph{noise-regularized} digital baseline, which is stronger than the plain one on copy as
+well (paired $\Delta$bpc $-0.150 \pm 0.033$ at $M{=}16$, $-0.215 \pm 0.011$ at $M{=}32$);
+margins against the plain baseline are $3$--$5$ points higher and are upper bounds.
+
+\begin{table}[t]
+\centering
+\caption{Copy task, 3 seeds (mean $\pm$ sd), ep30 budget, $H{=}256$ ($87{,}889$ parameters),
+$K{=}16$, chance acc $0.0625$ / bpc $4.000$. ``Emit'' is the emitted (wire) rate; ``state''
+is state activity. Margin kept is vs.\ the noise-regularized digital reference at
+$M{=}16/32$ and vs.\ the plain digital baseline at $M{=}64$ (the regularization control was
+not run there; see \S\ref{sec:copy-load}). Energy is the 45\,nm proxy, not a silicon
+measurement.}
+\label{tab:copy}
+\small
+\begin{tabular}{l l r r r r r r}
+\toprule
+$M$ & Variant & acc & bpc & emit & state & margin kept & pJ/tok \\
+\midrule
+16 & digital (plain)      & $0.630 \pm 0.011$ & $1.420 \pm 0.034$ & 1.000 & 1.000 & 0.95 & 398k \\
+16 & digital + noise reg. & $0.663 \pm 0.009$ & $1.270 \pm 0.029$ & 1.000 & 1.000 & 1.00 & 398k \\
+16 & spikeout             & $0.583 \pm 0.012$ & $1.545 \pm 0.071$ & 0.447 & 1.000 & 0.87 & 123k \\
+16 & analog $\theta{=}0.2$ & $0.361 \pm 0.051$ & $2.777 \pm 0.226$ & 0.501 & 0.972 & 0.50 & 247k \\
+16 & spikestate           & $0.107 \pm 0.016$ & $3.929 \pm 0.037$ & 0.496 & 0.496 & 0.074 & 108k \\
+\midrule
+32 & digital (plain)      & $0.315 \pm 0.003$ & $2.893 \pm 0.013$ & 1.000 & 1.000 & 0.90 & 398k \\
+32 & digital + noise reg. & $0.343 \pm 0.003$ & $2.678 \pm 0.016$ & 1.000 & 1.000 & 1.00 & 398k \\
+32 & spikeout             & $0.180 \pm 0.001$ & $3.605 \pm 0.003$ & 0.485 & 1.000 & 0.42 & 125k \\
+32 & analog $\theta{=}0.2$ & $0.142 \pm 0.000$ & $3.788 \pm 0.002$ & 0.449 & 0.964 & 0.28 & 231k \\
+32 & spikestate           & $0.062 \pm 0.001$ & $4.005 \pm 0.004$ & 0.405 & 0.405 & 0.00 & 102k \\
+\midrule
+64 & digital (plain)      & $0.167 \pm 0.001$ & $3.666 \pm 0.012$ & 1.000 & 1.000 & 1.00 & 398k \\
+64 & spikeout             & $0.133 \pm 0.001$ & $3.824 \pm 0.002$ & 0.481 & 1.000 & 0.67 & 125k \\
+64 & analog $\theta{=}0.2$ & $0.110 \pm 0.001$ & $3.914 \pm 0.001$ & 0.401 & 0.955 & 0.46 & 216k \\
+64 & spikestate           & $0.062 \pm 0.001$ & $4.002 \pm 0.001$ & 0.238 & 0.238 & 0.00 & 91k \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The three non-digital variants emit at nearly matched rates ($0.40$--$0.50$ at every load), so
+--- as in Section~\ref{sec:charlm-matched} --- the quality spread is not an operating-point
+artifact. And the ordering is the exact reverse of char-LM: at $M{=}16$, best to worst is
+\textbf{spikeout} (margin kept $0.87$), \textbf{analog} ($0.50$), \textbf{spikestate}
+($0.074$); on char-LM the same three variants ranked analog ($\Delta$bpc $+0.160$ vs.\ the
+regularized reference) $\ll$ spikestate ($+0.587$) $\ll$ spikeout ($+1.364$). The variant
+that was worst on the statistical workload --- continuous state, spiked output --- is the
+only one that survives precise recall, keeping $87\%$ of the regularized baseline's margin at
+a $45\%$ emission rate and $3.2\times$ lower proxy energy.
+
+\subsection{A one-bit recurrent state eliminates recall}
+\label{sec:copy-floor}
+
+The spikestate row is not merely degraded. At $M{=}32$ it lands at \emph{exactly} chance ---
+accuracy $0.0623 \pm 0.0012$ against $0.0625$, bpc $4.005 \pm 0.004$ against $4.000$ --- and
+reproduces this at $M{=}64$ ($0.0623 \pm 0.0005$). A one-bit recurrent state does not degrade
+precise-recall performance at these loads; it \emph{eliminates} it. It is simultaneously the
+cheapest cell in the table ($102$k pJ/token at $M{=}32$, $4\times$ below the digital
+baseline) and buys nothing: the cleanest demonstration in this study that an energy number is
+meaningless without the task quality it purchased. For memory-bearing workloads, carrying the
+recurrent state in spikes is a non-option, not a cheap option.
+
+\subsection{Load dependence, and the validity limit at $M{=}64$}
+\label{sec:copy-load}
+
+Between $M{=}16$ and $M{=}32$ --- the loads where the digital reference still learns the task
+well above chance --- the quality gap \emph{widens} for both surviving neuromorphic routes:
+margin kept falls $0.87 \rightarrow 0.42$ for spikeout and $0.50 \rightarrow 0.28$ for analog
+(seed sd $\le 0.003$ acc, so far outside noise). The analog variant's emission does not rise
+to compensate at fixed $\theta$; it \emph{falls} ($0.501 \rightarrow 0.449$). Two
+consequences: there is no single ``$X\%$ of digital'' figure for a neuromorphic SSM --- the
+workload's retention demand sets it --- and any analog energy/quality curve must be drawn per
+memory load.
+
+The $M{=}64$ column is reported for completeness but is \emph{validity-limited}, and we do
+not use it for claims. The digital baseline itself is close to floor there (accuracy $0.167$,
+only $2.7\times$ chance, against $10\times$ chance at $M{=}16$), so every variant compresses
+toward chance and both metrics lose resolution: margin kept rebounds non-monotonically
+(spikeout $0.92 \rightarrow 0.46 \rightarrow 0.67$ vs.\ the plain baseline) and paired
+$\Delta$bpc compresses ($+0.71 \rightarrow +0.16$ for spikeout from $M{=}32$ to $M{=}64$) ---
+a shrinking-reference artifact, not a recovery. The regularization control was also not run
+at $M{=}64$, so no corrected margin exists there. The load-dependence claim above is
+therefore made on $M{=}16 \rightarrow 32$ only.

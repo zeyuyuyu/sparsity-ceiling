@@ -1,0 +1,95 @@
+% Paper 2, Section 6 — The datapath-degradation principle (evidence E4).
+% Numbers verified against ledger entries bb79f7f (char-LM control), 5bb7bcc (arm
+% mis-assignment discovered; quantizer contrast identified), 8d050cb (M=16 n=3), 48510c8
+% (M=32 n=3, pre-registered floor met).
+% CLAIMS DISCIPLINE: the quantizer contrast is POST-HOC-IDENTIFIED and must carry that label;
+% the pre-registered arm as written tested baseline tuning, not datapaths. The noise-benefit
+% trend across loads runs TOWARD char-LM and must be reported as weakening the strength line.
+
+\section{The datapath-degradation principle}
+\label{sec:principle}
+
+\subsection{Statement}
+\label{sec:principle-statement}
+
+Sections~\ref{sec:charlm} and~\ref{sec:copy} give matched-communication-rate variant
+orderings on two workloads, and they invert. One principle predicts both:
+
+\begin{quote}
+\emph{A neuromorphic SSM datapath is cheap exactly when it degrades the part of the
+computation the workload does not depend on.} Statistical sequence workloads need an exact
+graded \emph{output} distribution and tolerate a lossy state, so the analog-state route is
+the best neuromorphic option there. Precise-recall workloads need an exact recurrent
+\emph{state} and tolerate a spiked output, so the output-spiking route is the only
+neuromorphic option that survives there.
+\end{quote}
+
+\subsection{Why state fidelity alone is not the axis}
+\label{sec:principle-fidelity}
+
+A simpler candidate explanation --- rank the variants by how exact their recurrent state is
+--- fits the copy ordering perfectly: at matched emission, margin kept falls monotonically
+with state fidelity, continuous ($0.87$) $>$ lossy-analog ($0.50$) $>$ one-bit ($0.074$). But
+it fails on char-LM: the output-spiking variant has the \emph{most} exact recurrent state on
+both tasks (state activity exactly $1.0000 \pm 0.0000$ in every cell of both tables, the most
+reproducible measurement in this study) yet is the \emph{worst} variant on char-LM and the
+best on copy. State fidelity predicts one table; only the two-sided principle --- which part
+of the datapath does the task read? --- predicts both.
+
+\subsection{An out-of-sample test: the quantizer contrast}
+\label{sec:principle-quantizer}
+
+The principle makes a falsifiable prediction about any single degradation applied to the
+\emph{same} datapath on both workloads: an inference-time loss of state precision should be
+near-free on the statistical task and costly on the precise-recall task. The regularization
+control of Section~\ref{sec:controls} contains exactly such a degradation: the 6-bit state
+quantizer (unlike the additive noise, which is training-time only, the quantizer acts at
+inference). Applied to the \emph{digital} baseline at matched noise $\sigma{=}0.02$, the same
+quantizer costs:
+
+\begin{center}
+\small
+\begin{tabular}{l r r}
+\toprule
+Workload & quantizer-alone $\Delta$bpc & state footprint \\
+\midrule
+char-LM                    & $-0.002$ & --- \\
+copy $M{=}16$ (3 seeds)    & $+0.369$ & $1.000 \rightarrow 0.971 \pm 0.015$ \\
+copy $M{=}32$ (3 seeds)    & $+0.385$ & $1.000 \rightarrow 0.976 \pm 0.005$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The identical hardware degradation is free on the statistical workload and costs
+$\sim 0.37$--$0.39$ bpc on the precise-recall workload --- the principle's prediction, out of
+sample, on a datapath (plain digital) that none of the four variants' comparisons touched.
+The effect is load-robust: a floor of ``$\ge +0.37$ at $M{=}32$, smaller counts as evidence
+against'' was pre-registered after the $M{=}16$ result and met ($+0.385$ vs.\ $+0.369$; flat
+to slightly rising, within arm sd $\sim 0.04$--$0.05$ --- we say ``does not attenuate with
+load,'' not ``grows''). Quantization alone still keeps $0.78$ of the digital margin at
+$M{=}32$, far above spikeout's $0.42$ and analog's $0.28$, so state-precision loss explains
+part but not most of the neuromorphic copy deficit; the event and spike mechanisms add their
+own cost.
+
+\paragraph{Honesty label: this test is post-hoc-identified.}
+The control row was pre-registered with the \emph{noise} arm bound to the principle's
+prediction, and that assignment was wrong: inspection of the implementation showed the
+additive noise is gated behind training (\texttt{if self.training}) while the quantizer is
+not, so the noise arm is a training-time regularizer that tests baseline tuning, not an
+inference datapath degradation --- and its landing (noise \emph{helps} on copy too) says
+nothing about the principle. The quantizer arm is the row's only inference-time state
+degradation, and it was identified as the real test only after the arms landed. We therefore
+report the contrast as post-hoc but mechanistically motivated, with one genuinely
+pre-registered element (the $M{=}32$ floor, set before those cells finished). The
+pre-registered test \emph{as written} failed by mis-specification.
+
+\subsection{What weakens the principle}
+\label{sec:principle-against}
+
+Two observations run against a strong reading. First, the training-time noise benefit does
+not separate the workloads the way a naive reading would hope: it is $-0.150 \pm 0.033$ bpc
+at copy $M{=}16$, $-0.215 \pm 0.011$ at $M{=}32$, and $-0.309 \pm 0.024$ on char-LM --- the
+trend across loads runs \emph{toward} the char-LM value, so ``the regularizer helps the
+statistical task more'' is at best a weak supporting line and we do not lean on it. Second,
+the principle has been tested out of sample exactly once (the quantizer contrast), on two
+tasks and one architecture family; Section~\ref{sec:limitations} states the scale caveats.
