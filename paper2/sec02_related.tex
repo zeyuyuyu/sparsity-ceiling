@@ -54,8 +54,14 @@ group's earlier hardware demonstration: recurrent S4D kernels with $A$, $B$ and 
 into a single $64\times64$ memristive crossbar and executed step-by-step rather than as a
 convolution, with weights quantized to ternary; on a two-class spoken-digit task the deployed
 model reaches $81.7\%$ against a $95.1\%$ software reference, a gap the authors attribute to
-stuck devices --- an on-silicon instance of analog imperfection charging quality. HPD addresses
-the robustness side directly~\citep{hpd}; LMU-on-Braindrop is the earlier precedent. We treat this route in simulation, with the analog storage element's
+stuck devices --- an on-silicon instance of analog imperfection charging quality. HPD~\citep{hpd} addresses the
+robustness side directly, though in simulation rather than on silicon: a layer-wise
+vulnerability analysis of Mamba under weight perturbations --- the noise enters the weights,
+not the state --- locates the damage in the final block's output projection, and the remedy is
+itself a hybrid datapath split: the projection's SVD factor $U\Sigma$ stays on the analog
+array while $V^{\top}$ is offloaded to digital for exact correction, an independent instance
+of spending exactness on the side of the datapath the loss depends on. LMU-on-Braindrop is the
+earlier precedent. We treat this route in simulation, with the analog storage element's
 imperfections modelled explicitly (rails, additive state noise, finite state precision) and
 communication by send-on-delta graded events; \S\ref{sec:protocol} states exactly what is and is
 not modelled. We do not quote CIM-SSM's reported numbers, which are behind a paywall we could

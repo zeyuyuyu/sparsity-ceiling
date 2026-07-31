@@ -145,7 +145,7 @@ The bound `ρ ≥ H_b⁻¹(M·log₂K / H)` prices a recurrent net that carries 
 - ✓/□ Zhang…Wei D. Lu. *Compute-in-Memory Implementation of SSMs for Event Sequence Processing.* arXiv:2511.13912 / Nat. Commun. 2026. *(abstract + secondary sources; paywalled.)*
 - ✓ QS4D (2507.06079) — *read in full 2026-08-01; reclassified route (a) → CIM-adjacent (c): deployment target is memristive analog CIM, not digital fabric.*
 - ☑ IMSSA (2412.20215) — read in full 2026-08-01: same-group precursor to QS4D; recurrent S4D kernels on a 64×64 memristive crossbar (A/B/C in one array, ternary weights); deployed 81.69% vs 95.06% software on 2-class Heidelberg digits (drop attributed to stuck devices); no energy/area numbers; state analog-vs-digitized between steps NOT explicitly stated.
-- □ HPD (2508.11935) — *identified via search, not read in full.*
+- ☑ HPD (2508.11935) — read in full 2026-08-01: simulation-only (PyTorch/L20 GPU) weight-perturbation robustness study of Mamba/Mamba2 on analog CIM; final block's output projection is the most noise-sensitive part; fix = hybrid SVD split (UΣ stays on the CIM array, Vᵀ offloaded to digital) — an independent datapath-exactness allocation. Weight noise only (analog state decay not modelled); no energy/area numbers; their "up to 99.57%" is a degradation-removed robustness ratio (their eq. 16), not a perplexity cut.
 - □ Mitrokhin et al. *Sci. Robotics* 2019 (aaw6736) — *paywalled.*
 - ~ Izhikevich, *Spiking Manifesto* (2512.11843); ArrowFlow (2604.04087) — *abstract-level.*
 - Kanerva, *Sparse Distributed Memory*; Eliasmith, *NEF*.

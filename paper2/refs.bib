@@ -2,10 +2,10 @@
 %   paper1, s4, s4d, lmu, spikessm, cimssm, qs4d, imssa, hpd
 %
 % METADATA HONESTY: the memo's reading list (talk/imam_ssm_memo_v3.md, "References") records
-% which of these were read in full. imssa/hpd were identified via search and NOT read in
-% full; their title/author metadata was verified against the arXiv API listing on 2026-07-31
-% (the notes say so), but no content claims beyond sec02's route classification rest on them.
-% qs4d WAS read in full on 2026-08-01 — see its entry comment for the resulting correction.
+% which of these were read in full. qs4d/imssa/hpd were originally identified via search,
+% with title/author metadata verified against the arXiv API listing on 2026-07-31; all three
+% have since been READ IN FULL (2026-08-01) — see each entry's comment for what the read
+% changed.
 
 @misc{paper1,
   author       = {Zeyu Wang},
@@ -80,8 +80,12 @@
   note         = {arXiv:2412.20215}
 }
 
-% Metadata verified against the arXiv API listing 2026-07-31; not read in full
-% (see memo v3 reading list) — cited only for route classification in sec02.
+% Read in full 2026-08-01. Simulation-only (PyTorch 2.2, NVIDIA L20 GPU) WEIGHT-perturbation
+% robustness study of Mamba/Mamba2 on analog CIM: final block's output projection is the most
+% noise-sensitive component; fix = SVD split, U*Sigma stays on the CIM array, V^T offloaded to
+% digital for exact correction. Weight noise only — analog state decay is NOT modelled; no
+% energy/area numbers. QUOTE TRAP: their "cuts perplexity by up to 99.57%" is a
+% degradation-removed robustness ratio (their eq. 16), NOT a perplexity reduction.
 @misc{hpd,
   author       = {Yuannuo Feng and Wenyong Zhou and Yuexi Lyu and Hanjie Liu and
                   Zhengwu Liu and Ngai Wong and Wang Kang},
