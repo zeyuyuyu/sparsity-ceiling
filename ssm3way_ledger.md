@@ -1448,3 +1448,37 @@ A800s verified idle, no ssm3way.py processes.
   distinction is a named metric in §3.4 (analog state density 0.994 stated in both sections).
 - Next drafting steps (unchanged from skeleton): §5+§6 (copy + principle), §7 (bound, reuse
   memo v3 §8), intro/related last; then deck regeneration.
+
+
+## 2026-07-31 tick — PAPER2 DRAFTING STEP 2: §5 (copy) + §6 (principle) drafted (commit 750b1bb, zero-GPU)
+
+All 8 A800s idle, no jobs; writing tick per the standing "no data cells remain" verdict.
+`paper2/sec05_copy.tex` (105 lines) + `paper2/sec06_principle.tex` (95 lines).
+
+Discipline held: the copy master table was regenerated from `agg_copy.py 30` this tick and
+verified against a8e7a7c / 8e74f48 / 159e341 / 5bb7bcc / 8d050cb / 48510c8 before any number
+was copied in; nothing re-derived by hand.
+
+NEW OBSERVATION surfaced by regenerating the full table (first time the M=64 column was read
+against the others): **M=64 is VALIDITY-LIMITED and §5.3 says so explicitly.**
+- The digital baseline is near-floor at M=64 (acc 0.1671±0.0010, only 2.7× chance, vs 10× at
+  M=16), so every variant compresses toward chance.
+- Margin kept vs plain digital is NON-MONOTONE in M for both surviving routes (spikeout
+  0.92→0.46→0.67, analog 0.53→0.31→0.46) and paired Δbpc compresses (spikeout +0.71 at M=32 →
+  +0.16 at M=64) — a shrinking-reference artifact, NOT a recovery. Do not cite M=64 margins
+  as evidence that the gap narrows.
+- The regularization control never ran at M=64 (digreg row was L∈{33,65} only), so no
+  corrected margin exists there; Table 2 marks the M=64 margins as vs-plain.
+- Consequence for claims: the "gap widens with load" line is scoped to M=16→32 in the paper.
+- One robust M=64 datapoint that IS quoted: spikestate reproduces exactly-chance at a third
+  load (acc 0.0623±0.0005), so "1-bit state eliminates recall" now holds at M=32 AND M=64.
+
+§6 content: principle statement; state-fidelity-alone refuted (spikeout rate_state exactly
+1.0000 everywhere, best on copy / worst on char-LM); quantizer contrast table (−0.002 char-LM
+vs +0.369/+0.385 copy, footprints 0.971/0.976) carried with the MANDATORY post-hoc label and
+the mis-specified-pre-registration history; the pre-registered M=32 floor (≥+0.37, met) noted
+as the one genuinely pre-registered element; §6.4 reports the noise-benefit trend
+(−0.150→−0.215→−0.309, runs toward char-LM) as weakening the strength-based supporting line.
+
+Remaining writeup steps: §7 (bound — reuse memo v3 §8), intro/related/hardware/limitations,
+main.tex assembly + local LaTeX build on /home/zeyu; deck regeneration still open.
