@@ -42,7 +42,7 @@ Also: my own firing-floor bound from *The Sparsity Ceiling* is **not empirically
 
 **(c) Native analog SSM — the non-spiking route you asked about** — device physics *is* the dynamics:
 - **CIM-SSM (Zhang, …, Wei D. Lu; arXiv:2511.13912, Nat. Commun. 2026):** non-spiking continuous diagonal SSM in a memristor crossbar; the device's native short-term-memory relaxation physically realizes the state decay. *(numbers not verified — paywalled.)*
-- Corroborating: **QS4D (2507.06079)** — QAT of diagonal S4D for TaOx memristive crossbars; QAT confers analog-noise robustness (read in full 2026-08-01; moved here from (a)) — plus **IMSSA (2412.20215)**, **HPD (2508.11935)** for analog-CIM robustness, and **LMU-on-Braindrop**.
+- Corroborating: **QS4D (2507.06079)** — QAT of diagonal S4D for TaOx memristive crossbars; QAT confers analog-noise robustness (read in full 2026-08-01; moved here from (a)) — plus **IMSSA (2412.20215)** — same group's earlier crossbar deployment of recurrent S4D (read in full 2026-08-01) — **HPD (2508.11935)** for analog-CIM robustness, and **LMU-on-Braindrop**.
 - **Mechanism:** the memristor's exponential relaxation *is* `e^{At}`. No discretization mismatch; in-memory MVM for `Ax+Bu`.
 
 ## 4. What I actually built and measured
@@ -144,7 +144,8 @@ The bound `ρ ≥ H_b⁻¹(M·log₂K / H)` prices a recurrent net that carries 
 - ✓ Zhong et al. *SPikE-SSM.* arXiv:2410.17268, 2024.
 - ✓/□ Zhang…Wei D. Lu. *Compute-in-Memory Implementation of SSMs for Event Sequence Processing.* arXiv:2511.13912 / Nat. Commun. 2026. *(abstract + secondary sources; paywalled.)*
 - ✓ QS4D (2507.06079) — *read in full 2026-08-01; reclassified route (a) → CIM-adjacent (c): deployment target is memristive analog CIM, not digital fabric.*
-- □ IMSSA (2412.20215); HPD (2508.11935) — *identified via search, not read in full.*
+- ☑ IMSSA (2412.20215) — read in full 2026-08-01: same-group precursor to QS4D; recurrent S4D kernels on a 64×64 memristive crossbar (A/B/C in one array, ternary weights); deployed 81.69% vs 95.06% software on 2-class Heidelberg digits (drop attributed to stuck devices); no energy/area numbers; state analog-vs-digitized between steps NOT explicitly stated.
+- □ HPD (2508.11935) — *identified via search, not read in full.*
 - □ Mitrokhin et al. *Sci. Robotics* 2019 (aaw6736) — *paywalled.*
 - ~ Izhikevich, *Spiking Manifesto* (2512.11843); ArrowFlow (2604.04087) — *abstract-level.*
 - Kanerva, *Sparse Distributed Memory*; Eliasmith, *NEF*.

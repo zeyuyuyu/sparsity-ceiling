@@ -1839,3 +1839,21 @@ State: GPUs 0-6 all idle (1 MiB, 0-2% util; GPU7 still absent from bus), zero ss
 - **Build result:** full `pdflatex → bibtex → pdflatex ×2` cycle, all four passes **exit 0**, **zero undefined citations/references**, **13 pp / 531,343 bytes**. Log carries **2 Underfull hboxes and ZERO Overfull** — the earlier ledger claim of "zero overfull boxes" reproduces exactly; the two underfulls are badness-10000/3657 lines inside `main.bbl` (bibliography line-breaking) and are cosmetic.
 - **Infra note for future ticks:** `scp` of the 531 kB PDF to the A800 exceeded a 120 s foreground window and had to be backgrounded — the standing "scp is flaky, small files ok" warning applies at ~0.5 MB, not just at dataset scale. Budget a background transfer for any PDF-sized artifact. Also reconfirmed: LaTeX exists ONLY on /home/zeyu (server has no latex), so paper2 rebuilds are always local-then-upload.
 - **PROJECT STATE unchanged otherwise: the SSM×neuromorphic thread still has NO open tick-work.** Empirical arm closed; paper 2 compiles clean at 13 pp with a fully asserted bibliography and a PDF that now matches its sources; memo v3 send-ready; deck + speaker notes post-retraction. What remains are USER decisions, not tick steps: (1) send `talk/imam_ssm_memo_v3.md` to Imam (outward-facing — do not auto-send), (2) whether/when to arXiv-submit paper 2 (external — user's call), (3) optionally full-read imssa/hpd (qs4d already read in full). Future ticks should idle (status line only) unless the user redirects or paper 1 v2 (the overfull line-98 fix) is requested.
+
+
+## 2026-08-01 tick — IMSSA (arXiv:2412.20215) READ IN FULL; sec02 attribution corrected (zero-GPU)
+
+Server state: 7 GPUs visible (0–6, GPU 7 still absent), all idle, zero ssm3way.py procs. Empirical arm closed; no data cells. This tick executed the pending "optionally full-read imssa/hpd" item for IMSSA.
+
+**What the full read established (arXiv HTML v1):**
+- IMSSA = Siegel, Yang, Strachan (2024) — the same group's earlier work preceding QS4D (2507.06079).
+- Contribution is a **hardware deployment demonstration**, not a robustness method: recurrent S4D kernels with A, B and C programmed into a **single 64×64 memristive crossbar**, executed **step-by-step** (explicitly not unrolled to a convolution), QAT extended for analog IMC down to **ternary (2-bit) weights**; stronger quantization measured as MORE robust to write noise (σ > 15 μS sustainable at 2-bit vs 5 μS at 5-bit).
+- Task: two-class Heidelberg spoken digits ("zero" vs "one"). **Deployed 81.69% vs 95.06% software reference**; authors attribute the drop to stuck-high devices and estimate 95.61% without them. An on-silicon instance of analog imperfection charging quality — consistent with our simulated lossy-state findings.
+- **No energy or area numbers.** Whether the recurrent state stays analog between steps or is digitized each step is **not explicitly stated** (output currents are converted for the next timestep; ADC not detailed) — so IMSSA does not settle the native-analog-state question; CIM-SSM remains the only route-(c) exemplar claiming device-physics state decay.
+
+**Corrections applied (anchor-checked patch, `/tmp/imssa_patch.py` on server):**
+1. `paper2/sec02_related.tex` — the sentence "IMSSA and HPD address the robustness side directly" **misattributed IMSSA**; rewritten so IMSSA is described as the deployment demonstration (crossbar, ternary weights, 81.7% vs 95.1%, stuck devices) and only HPD keeps the "addresses robustness directly" clause.
+2. `paper2/refs.bib` — imssa comment block upgraded from "not read in full" to read-in-full with the key facts; the honesty note about the unstated state-digitization is in the comment.
+3. `talk/imam_ssm_memo_v3.md` — reading-list checkbox ☑ for IMSSA with the same facts; line-45 clause no longer lumps IMSSA under "analog-CIM robustness". HPD stays □ not-read-in-full.
+
+**No experimental number, caveat, post-hoc label or retraction sentence touched.** Consequence: `paper2/paper2.pdf` is again 1 commit stale vs sources (same pattern as the QS4D tick) — rebuild LOCALLY on /home/zeyu before submission or next paper2 edit. Remaining unread bib entry: **hpd (2508.11935) only**.

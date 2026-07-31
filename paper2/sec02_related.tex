@@ -49,8 +49,13 @@ relaxation of the device is $e^{At}$, so there is no discretization mismatch to 
 $Ax + Bu$ is an in-memory matrix--vector multiply. Related analog compute-in-memory work
 approaches the same substrate from adjacent angles: QS4D~\citep{qs4d} trains diagonal S4D with
 quantization-aware training for deployment on tantalum-oxide memristive crossbars and reports
-that the training itself confers robustness to analog noise, while IMSSA and HPD address the
-robustness side directly~\citep{imssa,hpd}; LMU-on-Braindrop is the earlier precedent. We treat this route in simulation, with the analog storage element's
+that the training itself confers robustness to analog noise. IMSSA~\citep{imssa} is the same
+group's earlier hardware demonstration: recurrent S4D kernels with $A$, $B$ and $C$ programmed
+into a single $64\times64$ memristive crossbar and executed step-by-step rather than as a
+convolution, with weights quantized to ternary; on a two-class spoken-digit task the deployed
+model reaches $81.7\%$ against a $95.1\%$ software reference, a gap the authors attribute to
+stuck devices --- an on-silicon instance of analog imperfection charging quality. HPD addresses
+the robustness side directly~\citep{hpd}; LMU-on-Braindrop is the earlier precedent. We treat this route in simulation, with the analog storage element's
 imperfections modelled explicitly (rails, additive state noise, finite state precision) and
 communication by send-on-delta graded events; \S\ref{sec:protocol} states exactly what is and is
 not modelled. We do not quote CIM-SSM's reported numbers, which are behind a paywall we could
