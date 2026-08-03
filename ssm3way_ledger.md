@@ -2196,3 +2196,57 @@ column and (if any signal survives) 3-seed confirmation.
 - Consequence for the literature framing: every neuromorphic-SSM mechanism tested here (and the cited routes) acts on the recurrence, an 8% term on a language-like datapath; the layer that dominates the energy cannot be event-driven without stepping on quality, by either gating mechanism, on either workload class.
 
 **Caveats that travel with the verdict:** all gated cells are n=1 seed (3-seed confirmation owed before any paper use, though the effect sizes — 0.28 margin → ≤0.036 abs — dwarf the reference's 0.003 seed sd); the reading that send-on-delta staleness and LIF spiking are *different degradation axes* (so "output degradation" in the datapath principle was too coarse a category) remains an interpretation, not an experimentally separated attribution — the clean ablation (hold `uref` for a random unit subset at matched r_out) was pre-registered at a9ff715 and remains unrun.
+
+## 2026-08-03 ~10:20Z — PRE-REGISTERED ABLATION LAUNCHED: is the event-readout collapse STALENESS ITSELF, or the send-on-delta SELECTION RULE?
+
+The energy-datapath phase closed with a formal NO (73c99e6): the readout carries 75% of the
+analog SSM's pJ/token and every gating mechanism tested is quality-fatal. The one attribution
+in that verdict that was **reasoned from the code rather than measured** is the claim that
+send-on-delta *staleness* is a different degradation axis from LIF output-spiking — flagged as
+interpretation at a9ff715, with the clean ablation ("hold `uref` for a random unit subset at
+matched r_out") pre-registered and unrun. This row runs it.
+
+**Mechanism change (code, verified by diff):** new `--out_prand p` selects the held units by a
+per-unit per-step Bernoulli draw (send with probability `p`), *independent of the delta*, instead
+of by `|u - uref| > out_theta`. Everything else in the datapath is identical — same incremental
+accumulation `acc += W_out·(d·m_o)`, same energy pricing (`ev_out` now also true under the random
+gate), same budget. Default `out_prand=0.0`, so **every existing cell is bit-unaffected**;
+smoke-tested at p=0.60 → measured `r_out` 0.5997, i.e. the knob does set the staleness rate.
+
+**Row (6 cells, char-LM, seed 0, 6 ep / 1.4M chars — the published budget):** send rates matched
+to the theta row's MEASURED r_out. `digital` (reg, `--dig_noise 0.02`) at p ∈ {0.90, 0.59, 0.26,
+0.08} against theta 0.02/0.1/0.5/1.0 (r_out 0.901/0.594/0.258/0.084, bpc 4.056/4.067/4.061/4.036);
+`analog` (theta 0.15) at p ∈ {0.90, 0.26} against out_theta 0.1/1.0 (r_out 0.895/0.258, bpc
+4.127/4.190). No-gate references on disk: digital 3.031, analog 3.185.
+
+**PRE-REGISTERED READINGS (written before any cell lands, so they cannot be fitted after the fact).
+The comparison is Δbpc vs the arm's own no-gate reference, at matched r_out:**
+- **(A) SELECTION-INDEPENDENT — the flagged interpretation is CONFIRMED.** Random-subset staleness
+  costs **≥ 0.7 bpc** at p≈0.90 on both arms (i.e. it lands within ~0.3 bpc of the theta cells' ~1.0).
+  Then the harm is *holding a stale readout at all*, not the small-delta selection rule: no smarter
+  threshold rescues the readout's 75% energy share, and staleness is confirmed as a degradation axis
+  distinct from LIF output-spiking (which keeps 0.87 of the copy margin). Strengthens the phase verdict.
+- **(B) SELECTION-DEPENDENT — the verdict needs qualifying.** Random-subset staleness costs
+  **≤ 0.2 bpc** at p≈0.90. Then the collapse is a property of *the send-on-delta rule specifically*
+  (it preferentially freezes exactly the units whose small increments carry the signal), the
+  "staleness is fatal" sentence must be narrowed to "send-on-delta staleness is fatal", and searching
+  for a better gating rule becomes a live route back to the readout energy. This would reopen a
+  closed phase, so it is the outcome that must not be soft-pedalled if it happens.
+- **(C) INTERMEDIATE (0.2–0.7 bpc)** → report as graded: staleness carries part of the cost and
+  selection carries part; no reopening, but the axis claim is weakened to "mostly staleness".
+- **Also pre-registered: random gating being much WORSE than theta at matched rate (Δbpc ≫ 1.0) is
+  consistent with (A), not a failure** — the theta rule at least holds only small deltas, so random
+  holding of large deltas should be no better. The discriminating comparison is (B)-vs-(A), i.e.
+  whether random staleness is *cheap*, not whether it is worse than theta.
+- **Most likely outcome, stated up front: (A).** The theta row's penalty was already flat in r_out
+  (a step at the moment holding switches on, +0.14 bpc for a further 10× sparsification), which is
+  the signature of a mechanism insensitive to how much is held — and therefore likely insensitive to
+  which is held.
+- **Caveats owed:** n=1 seed (the phase's convention; effect sizes of interest are ≥0.7 bpc vs a
+  seed sd of ~0.003 on the references, so seed noise cannot decide it). char-LM only — the copy arm
+  of this ablation is NOT run, so any (A) conclusion about the *copy* collapse stays an inference
+  from the shared mechanism, not a measurement.
+
+Driver `run_outrand.sh <gpu>` (lock-dir work queue, idempotent, skips finished cells).
+Results land as `ssm3way_runs/{digital_charlm_s0_reg_n0.02,analog_charlm_s0_theta0.15}_pr<p>.json`;
+markers in `copy_logs/outrand.log`.

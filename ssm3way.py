@@ -70,6 +70,10 @@ def get_args():
     p.add_argument("--dig_bits", type=int, default=0,
                    help="regularization control: state quantization on DIGITAL")
     p.add_argument("--wd", type=float, default=0.0, help="Adam weight decay")
+    p.add_argument("--out_prand", type=float, default=0.0,
+                   help="ablation: random-subset readout staleness -- per-unit "
+                        "per-step SEND probability, independent of the delta. "
+                        "Use to match the theta gate's measured r_out.")
     p.add_argument("--out_theta", type=float, default=0.0,
                    help="event-driven readout: send-on-delta threshold on the "
                         "readout input u=W_mix(z).  0 = dense MAC readout (old "
@@ -145,6 +149,7 @@ class SSM(nn.Module):
         a = self.decay()
         logits, z_act, s_act, o_act = [], [], [], []
         ot = self.cfg.out_theta
+        pr = getattr(self.cfg, "out_prand", 0.0)
         uref = torch.zeros(B, self.H, device=dev)       # readout last-sent value
         acc = self.W_out.bias.unsqueeze(0).expand(B, -1)  # running logits
         for t in range(L):
@@ -175,9 +180,12 @@ class SSM(nn.Module):
                 z = h * m.detach()
                 z_act.append(m.mean())
             u = self.W_mix(z)
-            if ot > 0:
+            if ot > 0 or pr > 0:
                 d = u - uref
-                m_o = (d.abs() > ot).float()
+                if pr > 0:
+                    m_o = (torch.rand_like(d) < pr).float()
+                else:
+                    m_o = (d.abs() > ot).float()
                 uref = uref + (d * m_o).detach()
                 acc = acc + torch.nn.functional.linear(d * m_o, self.W_out.weight)
                 o_act.append(m_o.mean())
@@ -196,7 +204,8 @@ def energy(a, V, r_z, r_s, r_o=1.0):
     win = E * H; wmix = H * H; wout = H * V
     terms = {}
     # event-driven readout: only emitting units accumulate into W_out.
-    ev_out = a.out_theta > 0 and a.variant != "spikestate"
+    ev_out = (a.out_theta > 0 or getattr(a, "out_prand", 0.0) > 0) \
+             and a.variant != "spikestate"
     w_out_term = ("W_out_event_at_ro", wout * r_o * E_AC) if ev_out else \
                  ("W_out_MAC", wout * E_MAC)
     if a.variant == "digital":
@@ -276,7 +285,7 @@ def main():
            "analog": {"theta": a.theta, "noise": a.noise, "bits": a.bits, "rail": a.rail}
            if a.variant == "analog" else None,
            "dig_reg": {"dig_noise": a.dig_noise, "dig_bits": a.dig_bits, "wd": a.wd},
-           "out_theta": a.out_theta,
+           "out_theta": a.out_theta, "out_prand": a.out_prand,
            "bpc": round(ev["bpc"], 4), "ppl": round(ev["ppl"], 3),
            "acc": round(ev["acc"], 4),
            "rate_emitted": round(ev["rate_emitted"], 4),
