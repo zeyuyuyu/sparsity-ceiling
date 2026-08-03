@@ -2,7 +2,8 @@
 % §3.5, §4.3, §5.3, §6.3, §7.4, §8.3 so a reviewer finds them in one place).
 % Numbers verified against ledger entries bb79f7f (noise benefit −0.309, wd zero),
 % 48510c8 (quantizer contrast at 3 seeds), 471f113 (bound-arm scale), 750b1bb (M=64
-% validity limit). CLAIMS DISCIPLINE — forbidden here as everywhere: "analog beats
+% validity limit), c8b596f/a9ff715 + 73c99e6 + 60d627c + db7c13b (stranded-readout arm
+% and its 3-seed confirmation). CLAIMS DISCIPLINE — forbidden here as everywhere: "analog beats
 % digital" (retracted); "bound confirmed"; copy margins vs the PLAIN reference; any pJ
 % figure presented as a silicon measurement.
 
@@ -11,10 +12,12 @@
 
 \paragraph{Simulation, not silicon.}
 Every energy figure in this paper is the 45\,nm Horowitz MAC/AC proxy applied to counted
-operations, not a measurement of any device. The proxy omits costs that fall specifically
-on the analog route: the analog state is dense (state density $0.994$), and each hidden
-unit implies an analog storage element and a converter that MAC/AC accounting does not
-price. Matching variants on \emph{emitted} rate therefore matches wire traffic, not
+operations, not a measurement of any device. The analog state is dense (state density
+$0.994$), and each hidden unit implies an analog storage element and a converter that
+MAC/AC counting alone does not price; Section~\ref{sec:hardware-stranded} prices both
+under the proxy and finds them at $0.00$--$0.33\%$ of the analog total at $H{=}256$, but
+that assessment inherits every assumption of the proxy itself. Matching variants on
+\emph{emitted} rate matches wire traffic, not
 state-holding cost (Section~\ref{sec:metrics}). The $1.60\times$ figure of
 Section~\ref{sec:charlm-claim} is a claim about communication and arithmetic under the
 proxy, and could shrink or invert once storage and conversion are priced on real silicon;
@@ -65,3 +68,14 @@ The copy $M{=}64$ column is capacity-limited for every variant (the digital refe
 itself is only $2.7\times$ chance) and has no regularized reference, so it supports only
 the chance-level reproduction of the spiking-state result; the load-scaling claims of
 Section~\ref{sec:copy-load} are scoped to $M{=}16\!\to\!32$.
+
+\paragraph{Scope of the stranded-readout negative.}
+The readout-energy results of Section~\ref{sec:hardware-stranded} carry three designed
+limits. The attribution of the copy collapse to staleness is an inference from the
+char-LM ablation --- the random-hold arm was not run on copy. The cited operating points
+are three-seed, but the intermediate thresholds and hold rates between them remain
+single-seed, and the low-rate delta-versus-random comparison exists on the digital arm
+only. And the $1.74\times$ free-recurrence ceiling is a property of this model's shape:
+the readout dominates because $H \times V$ exceeds $H^{2}$ at this vocabulary, so the
+decomposition must be redone before applying the conclusion to a differently proportioned
+SSM (at $H \gg V$ the recurrence, not the readout, would carry the energy).

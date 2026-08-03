@@ -2372,3 +2372,44 @@ digital p=0.90 Δbpc **+1.1172±0.0450**; analog p=0.90 Δbpc **+0.9218±0.0215*
 **Caveats that REMAIN (by design, not omission):** (i) copy-collapse attribution to staleness is still an inference — no copy outrand arm was run; (ii) the untested operating points (ot ∈ {0.05,0.25,0.5,2.0}, outrand rates {0.59,0.26}, analog low-rate pr0.26) stay n=1; the low-rate delta-vs-random comparison is digital-arm only; (iii) energy numbers remain the 45nm Horowitz proxy from simulation.
 
 **Phase state: the energy-datapath phase verdict (73c99e6, strengthened 60d627c) now stands on 3-seed evidence.** Remaining work is WRITEUP only: fold the energy decomposition + stranded-readout negative into paper2 (new section) and memo v3 (one paragraph), with the confirmed numbers above.
+
+
+## 2026-08-03 ~14:00Z — WRITEUP FOLD-IN: the energy-datapath phase verdict is now in paper2 and memo v3 (zero-GPU tick)
+
+Paper2 gains **sec 8.4 "The energy is not where the mechanisms are"** (`\label{sec:hardware-stranded}`):
+the W_out 75% / recurrence 8% decomposition (H·V = 72,448 > H² = 65,536 at V=284), the 1.74×
+free-recurrence ceiling (410,040 pJ/token; the published 1.60× = 92% of it), the converter/storage
+sweep (ADC/DAC 0.01–1.0 pJ/event, storage 0–0.5 pJ/unit/step → 0.00–0.33% of the analog total at
+H=256), the stranded-readout negative at 3 seeds (char-LM +0.99..+1.12 bpc digital / +0.91..+1.05
+analog at EVERY threshold, flat across send rates 0.98→0.11; copy margin kept ≤0.05 at both M=16
+and M=32 incl. r_out≈0.998; gated copy cells train to uniform or diverge), and the outrand
+attribution (staleness itself fatal: +1.12/+0.92 bpc at 0.90 send rate; send-on-delta exonerated,
+0.45 bpc better than random at the low rate; LIF output-spiking survives quality but recomputes
+every MAC).
+
+Supporting edits: sec 8.3's closing paragraph and sec 9's "Simulation, not silicon" now say the
+converter/storage terms ARE priced under the proxy (small at this width) while keeping the
+proxy-not-silicon caveat; sec 9 gains a "Scope of the stranded-readout negative" paragraph (copy
+attribution = inference, no copy outrand arm; intermediate operating points n=1; low-rate
+delta-vs-random digital-arm only; the 1.74× ceiling is a model-shape property — at H ≫ V the
+recurrence would dominate). Both section headers' verified-against lists gained
+c8b596f/a9ff715, 73c99e6, 60d627c, db7c13b. memo v3 gains one addendum paragraph (before §10)
+with the same content and inline caveats.
+
+Numbers verified against ledger entries c8b596f/a9ff715 (decomposition/ceiling/sweep), 73c99e6
+(copy event-readout refutation), 60d627c (outrand), db7c13b (3-seed confirmation). Local rebuild
+(server has no latex): pdflatex→bibtex→pdflatex×2 all exit 0, ZERO overfull, zero undefined
+cites/refs, **14 pp** (was 13 — the new subsection adds a page), 539,859 B, md5
+4748b536b2caa4181eb5535c1524af36; new-section text confirmed in the PDF via local pdftotext
+("stranded", "1.74×", "410,040", "0.00–0.33%"). PDF re-committed in the same push so the
+committed `paper2/paper2.pdf` matches the committed sources.
+
+CLAIMS DISCIPLINE check: no "analog beats digital", no pJ figure presented as silicon, copy
+margins only vs the noise-regularized reference, the staleness-attribution inference labelled as
+such everywhere.
+
+**THREAD STATE after this tick: the writeup fold-in is DONE. The SSM×neuromorphic thread has NO
+open tick-work again — remaining items are USER decisions: (1) send `talk/imam_ssm_memo_v3.md`
+to Imam (outward-facing, never auto-send), (2) arXiv-submit paper 2 (now includes the
+energy-datapath section), (3) optional paper 1 v2. Deck (`talk/`) does NOT yet carry the
+stranded-readout result — a candidate future zero-GPU tick if the user wants the deck current.**

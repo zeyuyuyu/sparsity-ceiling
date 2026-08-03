@@ -2,7 +2,10 @@
 % Numbers verified against ledger entries 83e110a (ADC-step-floors-theta), a9f36d2 (usable
 % theta window on copy; theta=0.5 collapse), 7a10a0d (theta non-transfer across tasks),
 % bb79f7f (char-LM energy/quality tradeoff vs regularized baseline), a8e7a7c / 8e74f48 /
-% 159e341 (copy energy columns), 5bb7bcc / 8d050cb / 48510c8 (margins vs regularized reference).
+% 159e341 (copy energy columns), 5bb7bcc / 8d050cb / 48510c8 (margins vs regularized reference),
+% c8b596f / a9ff715 (energy decomposition, free-recurrence ceiling, converter/storage sweep),
+% 73c99e6 (copy event-readout refutation), 60d627c (outrand attribution), db7c13b (3-seed
+% confirmation of all gated cells — the n=1 caveat is retired for the cited claims).
 % CLAIMS DISCIPLINE — forbidden in this section, per the skeleton's claims ledger:
 %   "analog beats digital" (retracted); any pJ number presented as a silicon measurement
 %   (all energy figures are the 45nm Horowitz MAC/AC proxy); quoting copy margins vs the
@@ -95,10 +98,70 @@ And it blocks reading cheapness as merit. The cheapest cell in the entire copy t
 spiking-state variant at $M{=}32$ (102k pJ/token) --- the same cell that retains exactly
 nothing. A pJ/token figure is meaningless without the quality it purchased.
 
-Finally, the proxy itself omits costs that fall specifically on the analog route: the analog
-state is dense (state density 0.994), and each unit carries an analog storage element and a
-converter that the MAC/AC accounting does not price. Matching variants on emitted rate
-matches wire traffic, not state-holding cost (Section~\ref{sec:metrics}). The honest summary
-for a designer is that the analog route's advantage is measured here in communication and
-quality, and its storage-side costs remain to be priced on silicon --- which is why measured
-Loihi-2/SpiNNaker-2-class energy, not more simulation, is the natural next step.
+Finally, the proxy's base accounting omits costs that fall specifically on the analog
+route: the analog state is dense (state density 0.994), and each unit carries an analog
+storage element and a converter that MAC/AC counting alone does not price. Matching
+variants on emitted rate matches wire traffic, not state-holding cost
+(Section~\ref{sec:metrics}). Section~\ref{sec:hardware-stranded} prices both terms under
+the proxy and finds them negligible at this width --- but that is a proxy statement, not a
+silicon one, which is why measured Loihi-2/SpiNNaker-2-class energy, not more simulation,
+remains the natural next step.
+
+\subsection{The energy is not where the mechanisms are}
+\label{sec:hardware-stranded}
+
+The structural observation above --- that the analog route earns event pricing only on the
+recurrent mixing matrix --- invites an obvious response: make the rest of the datapath
+event-driven too. We attempted exactly that, and the attempt failed in a way that is
+itself a design finding, so we report it in full. All gated-cell effects below are
+three-seed means, paired against each arm's own no-gate reference.
+
+\emph{Decomposing the proxy locates the energy away from every mechanism in this paper.}
+On char-LM, the readout projection $W_{\mathrm{out}}$ carries 75\% of the analog variant's
+proxy energy per token (and 47\% of digital's), while the recurrence $W_{\mathrm{mix}}$
+--- the only term the proxy prices as event-driven for analog --- carries 8\%. The reason
+is dimensional: at vocabulary $V{=}284$ the readout ($H \times V = 72{,}448$ weights) is
+the largest single matrix in the model, exceeding the recurrence ($H^{2} = 65{,}536$).
+The consequence is a ceiling: an analog variant with a \emph{free} recurrence (event rate
+$\to 0$) still costs 410{,}040 pJ/token, a $1.74\times$ reduction against the regularized
+digital reference --- so the published $1.60\times$ of
+Section~\ref{sec:hardware-energy} already realizes 92\% of everything recurrence
+sparsification can ever deliver on this datapath. Every neuromorphic mechanism examined in
+this paper, and every route surveyed in Section~\ref{sec:related}, acts on the 8\% term.
+
+\emph{Converters are not the obstacle.} Extending the proxy to the terms it previously
+omitted --- ADC/DAC conversion swept over 0.01--1.0 pJ per graded event, the analog
+storage element over 0--0.5 pJ per unit per step --- leaves both at 0.00--0.33\% of the
+analog total at $H{=}256$, two to four orders of magnitude below the matrix terms. This
+cuts both ways: it removes unpriced converters as an objection to the analog route at this
+width, and it does not license calling converters free in general --- they begin to matter
+exactly when the matrices become cheap.
+
+\emph{The readout's share is stranded: an event-driven readout is quality-fatal on both
+workload classes.} We implemented an incremental send-on-delta readout --- each unit
+transmits into $W_{\mathrm{out}}$ only when its value has moved by more than a threshold
+since last sent (verified exact at a near-zero threshold) --- and swept it on both tasks.
+On char-LM the gate costs $+0.99$ to $+1.12$ bpc on the digital arm and $+0.91$ to $+1.05$
+on the analog arm at \emph{every} threshold, flat across send rates $0.98 \to 0.11$: a
+step function at gate-on, not a price per unit of sparsity bought. The digital arm pays it
+equally, so none of the readout saving is attributable to the analog state. On copy the
+same gate does not degrade recall, it eliminates it --- margin kept $\leq 0.05$ at both
+$M{=}16$ and $M{=}32$ at every threshold, including one where 99.8\% of readout units
+still transmit; the gated cells train to the uniform distribution or diverge, so the gate
+breaks training, not merely inference.
+
+\emph{Staleness itself, not the selection rule, is the fatal mechanism.} Holding readout
+units by a random per-step Bernoulli draw at matched send rates costs $+1.12$/$+0.92$ bpc
+(digital/analog) already at a 0.90 send rate, and the delta-triggered rule is
+\emph{better} than random at low rates (by $0.45$ bpc at a $0.08$ send rate, digital arm)
+--- send-on-delta is exonerated as a selection rule, and no smarter gating rule reopens
+the route. The one readout sparsification that survives quality --- LIF output-spiking,
+which keeps 0.87/0.42 of the regularized margin on copy
+(Section~\ref{sec:hardware-split}) --- recomputes the full readout every step, and
+therefore recovers none of its MAC energy.
+
+The design conclusion is blunt. On a language-like workload the pJ ceiling of this SSM
+datapath family is set by the readout width, not by the state mechanism, and the readout's
+75\% share resists both known gating mechanisms: hold-based schemes are quality-fatal, and
+spike-based schemes save no arithmetic. Claims of large energy wins from sparsifying an
+SSM recurrence should be read against the 8\% share that term actually carries.
