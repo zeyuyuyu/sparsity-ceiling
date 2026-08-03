@@ -2082,3 +2082,36 @@ code, not experimentally separated** — an ablation that holds `uref` fixed for
 random subset of units at matched r_out would separate them.  All pJ figures
 remain a 45 nm Horowitz proxy from simulation, not measured silicon.
 Reproduce: `python agg_eventro.py`, `python energy_datapath.py ssm3way_runs`.
+
+## Energy-datapath phase, step 3 — event-driven readout on the COPY task (LAUNCHED 2026-08-03 ~07:15Z, seed 0)
+
+**The one route left to a real measured pJ win, pre-registered last tick (a9ff715):** on char-LM the
+readout gate cost ~+1.0 bpc at any threshold — a step function at the moment the hold switches on —
+because char-LM needs an exact output distribution. The datapath-degradation principle predicts the
+SAME gate is CHEAP on precise-recall workloads, where output-spiking (also an output degradation) was
+already the best neuromorphic variant (margin kept 0.87 / 0.42 vs the noise-regularized reference at
+M=16/32). If that prediction holds, **digital-state + event-readout** is the project's first large pJ
+cut at little quality cost. If it fails here too, the conclusion is that the readout's 75% energy
+share is not recoverable at this scale on either workload class.
+
+**Row:** `run_eventro_copy.sh` (lock-dir work queue). 14 cells = digital + dig_noise 0.02,
+out_theta ∈ {0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0} × L ∈ {33, 65} (M=16, 32), seed 0, ep30/n80k.
+Out: `ssm3way_runs/digital_copy_L<L>_s0_reg_n0.02_ot<θ>_ep30.json`. Reference = the existing
+3-seed `digital_copy_L{33,65}_s{0,1,2}_reg_n0.02_ep30.json` cells (identical budget and
+regularization; the ONLY delta is the readout gate). Chance acc 0.0625.
+
+**PRE-REGISTERED CRITERIA (written before any cell lands):**
+1. **CONFIRMATION (principle holds, pJ win real):** at some out_theta with r_out ≤ 0.5 the gated run
+   keeps ≥ 0.85 of the reference's above-chance margin (margin kept = (acc − 0.0625)/(acc_ref − 0.0625),
+   per-L). That would be a ≥2× readout-traffic cut at ≤15% quality cost — qualitatively unlike
+   char-LM's +1.0 bpc step.
+2. **REFUTATION:** the char-LM step function reappears — margin collapses (< 0.5 kept) already at
+   r_out ≈ 1 (nothing meaningfully gated), at BOTH L. Then the readout's energy share is not
+   recoverable on either workload class and the honest verdict is "the 75% term is stranded".
+3. **Partial/boundary outcome to report as-is:** cheap at M=16 but expensive at M=32 (retention demand
+   interacts with readout staleness), or a graded (non-step) tradeoff — either is a finding, not a failure.
+4. **Most likely, stated up front:** confirmation at M=16, weaker at M=32 — by the same load-dependence
+   every neuromorphic mechanism has shown on copy.
+
+**Caveats owed before any paper use:** n=1 seed (3-seed confirmation required, as for the char-LM row);
+pJ accounting for the copy datapath must reuse `energy_datapath.py`'s terms, not the headline proxy alone.
