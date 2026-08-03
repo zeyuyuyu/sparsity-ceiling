@@ -2332,3 +2332,43 @@ References for paired Δbpc/margin: the existing 3-seed no-gate cells
 
 Caveat that stays regardless: the copy-collapse attribution to staleness remains an inference
 from the char-LM ablation (the copy arm of outrand is not run).
+
+
+## 2026-08-03 ~13:15Z — 3-seed confirmation row COMPLETE (30/30): pre-registered verdict = CONFIRMED on all three criteria, no claim weakened
+
+The seed-1/2 replication of the gated cells (driver `run_seed12.sh`, pre-registration in commit d84e8f3) finished at 12:51Z; aggregation script `agg_seed12.py` (committed) applies the criteria exactly as pre-registered. All effects below are 3-seed mean±sd; Δbpc is paired per-seed against the same arm's no-gate reference.
+
+**[1] char-LM event-readout — criterion "gate penalty ≥0.7 bpc at every tested ot, both arms": MET.**
+
+| arm (no-gate ref bpc) | ot | bpc | Δbpc vs ref | r_out |
+|---|---|---|---|---|
+| digital reg n0.02 (3.0338±0.0165) | 0.02 | 4.1233±0.0768 | **+1.0895±0.0650** | 0.899 |
+| | 0.1 | 4.1553±0.0867 | **+1.1215±0.0780** | 0.577 |
+| | 1.0 | 4.0233±0.0237 | **+0.9895±0.0397** | 0.106 |
+| analog θ=0.15 (3.1936±0.0078) | 0.02 | 4.1012±0.0229 | **+0.9075±0.0204** | 0.979 |
+| | 0.1 | 4.1334±0.0086 | **+0.9398±0.0081** | 0.895 |
+| | 1.0 | 4.2483±0.0527 | **+1.0546±0.0448** | 0.262 |
+
+The step-function shape reproduces at 3 seeds: the penalty is ~+1.0 bpc and FLAT across a r_out range of 0.98→0.11 (digital ot=0.1 is even nominally worse than ot=0.02) — the cost is incurred at gate-on, not per unit of sparsity bought.
+
+**[2] copy event-readout — criterion "margin kept ≤0.15 at both L": MET, with margin to spare (all cells ≤0.05).**
+
+| L (M) | ref acc (3-seed, no gate) | ot | acc | margin kept | r_out |
+|---|---|---|---|---|---|
+| 33 (16) | 0.6628±0.0090 | 0.02 | 0.0634±0.0009 | **0.0015±0.0015** | 0.998 |
+| | | 0.1 | 0.0791±0.0287 | 0.0277±0.0478 | 0.992 |
+| | | 1.0 | 0.0703±0.0146 | 0.0130±0.0243 | 0.900 |
+| 65 (32) | 0.3425±0.0027 | 0.02 | 0.0737±0.0186 | **0.0400±0.0665** | 0.998 |
+| | | 0.1 | 0.0749±0.0207 | 0.0442±0.0741 | 0.991 |
+| | | 1.0 | 0.0663±0.0066 | 0.0136±0.0235 | 0.874 |
+
+Total collapse at r_out≈0.998 (nothing meaningfully gated) is now a 3-seed fact at both memory loads, not an s0 anecdote.
+
+**[3] outrand attribution — criterion "random-hold ≥0.7 bpc at p=0.90 both arms AND delta-gate ≤ random at the low rate": MET.**
+digital p=0.90 Δbpc **+1.1172±0.0450**; analog p=0.90 Δbpc **+0.9218±0.0215**; digital p=0.08 Δbpc +1.4410±0.0155 vs delta-gate at matched r_out≈0.08 Δbpc +0.9895 → delta-triggered stays **0.45 bpc better** than random at the low rate (branch-A reading intact: staleness itself is fatal; send-on-delta is exonerated as a selection rule and no smarter rule reopens the route).
+
+**WEAKENED check: EMPTY** — every 3-seed mean effect is ≥ half its s0 size (most are within ~10% of s0). Per pre-registration, **the n=1 caveat RETIRES for the cited claims**: the ~+1.0 bpc char-LM readout-staleness step (both arms), the copy total-collapse at both L, and the random-hold attribution at p=0.90.
+
+**Caveats that REMAIN (by design, not omission):** (i) copy-collapse attribution to staleness is still an inference — no copy outrand arm was run; (ii) the untested operating points (ot ∈ {0.05,0.25,0.5,2.0}, outrand rates {0.59,0.26}, analog low-rate pr0.26) stay n=1; the low-rate delta-vs-random comparison is digital-arm only; (iii) energy numbers remain the 45nm Horowitz proxy from simulation.
+
+**Phase state: the energy-datapath phase verdict (73c99e6, strengthened 60d627c) now stands on 3-seed evidence.** Remaining work is WRITEUP only: fold the energy decomposition + stranded-readout negative into paper2 (new section) and memo v3 (one paragraph), with the confirmed numbers above.
