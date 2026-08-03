@@ -2170,3 +2170,29 @@ both workload classes"** — sparsifying the readout by *holding stale values* i
 everywhere tested, and the only readout sparsification that works (LIF output-spiking, copy) is one
 this energy model prices as events already. n=1 seed; do not fold into paper2 before the L=65
 column and (if any signal survives) 3-seed confirmation.
+
+## 2026-08-03 ~09:40Z — eventro-copy L=65 (M=32) column COMPLETE (7/7): pre-registered REFUTATION is now FORMAL at both L, and the energy-datapath phase closes with a NO
+
+**Data (copy L=65, M=32, K=16; ep30/n80k; seed 0; chance acc 0.0625).** Reference = the existing 3-seed noise-regularized digital baseline with no readout gate (`digital_copy_L65_s{0,1,2}_reg_n0.02_ep30`): acc **0.3425 ± 0.0027**, above-chance margin **0.2800**. Gated cells (`_ot<θ>`):
+
+| out_theta | acc | bpc | r_out | margin kept |
+|---|---|---|---|---|
+| 0.02 | 0.0630 | 20.75 | 0.9964 | 0.002 |
+| 0.05 | 0.0629 | 35.09 | 0.9743 | 0.001 |
+| 0.10 | 0.0988 | 3.96 | 0.9774 | 0.130 |
+| 0.25 | 0.0634 | 4.11 | 0.9774 | 0.003 |
+| 0.50 | 0.0768 | 4.02 | 0.9279 | 0.051 |
+| 1.00 | 0.0625 | 50.70 | 0.9180 | 0.000 |
+| 2.00 | 0.0796 | 3.99 | 0.6315 | 0.061 |
+
+**Criterion application (pre-registered in 94a415f, applied per-L).** CONFIRMATION required some out_theta with r_out ≤ 0.5 keeping ≥ 0.85 of the margin. No L=65 cell even *reaches* r_out ≤ 0.5 (min 0.63), and the best margin kept anywhere is 0.13. REFUTATION required the char-LM step-function shape — margin < 0.5 already at r_out ≈ 1 — at **both** L: at M=16 margin ≤ 0.013 at r_out = 0.9966; at M=32 margin ≤ 0.002 at r_out = 0.9964. Both L satisfy it. **The pre-registered refutation sentence therefore applies: the readout's 75% energy share is stranded on both workload classes.**
+
+**Same collapse shape as M=16, so one mechanism.** bpc is wildly non-monotone in θ (20.7 / 35.1 / 3.96 / 4.11 / 4.02 / 50.7 / 3.99) — cells sit either at learned-uniform (≈4.0 = log2 16) or diverged (20–51), never on a graded quality/sparsity curve. As at M=16, this is a **training failure induced by the gate**, not an inference-quality tax: collapse is complete at θ=0.02 where 99.6% of readout units still emit and essentially nothing is gated. The "most likely" branch pre-registered in 94a415f (cheap at M=16, weaker at M=32) was wrong at both loads, in the same direction.
+
+**ENERGY-DATAPATH PHASE VERDICT (goal step 4): analog does NOT win on pJ, and the 75% readout share is not recoverable by any route tested.**
+- Decomposition (c8b596f): `W_out` carries 75% of the analog variant's pJ/token, the recurrence 8%; even a free recurrence caps the analog advantage at 1.74× vs the regularized digital reference, and the published 1.60× is already 92% of that ceiling. Converters/analog storage are 0.00–0.33% across a 4-decade sweep — not the obstacle.
+- Send-on-delta staleness on `W_out` is **quality-fatal on both workload classes**: +~1.0 bpc step on char-LM at any threshold (a9ff715); total collapse to ~chance on copy at both M=16 (5df8644) and M=32 (this entry).
+- The one readout sparsification that survives copy — LIF output-spiking, margin kept 0.87 / 0.42 — recomputes `W_out` every step, so it saves none of the MAC energy that staleness would have.
+- Consequence for the literature framing: every neuromorphic-SSM mechanism tested here (and the cited routes) acts on the recurrence, an 8% term on a language-like datapath; the layer that dominates the energy cannot be event-driven without stepping on quality, by either gating mechanism, on either workload class.
+
+**Caveats that travel with the verdict:** all gated cells are n=1 seed (3-seed confirmation owed before any paper use, though the effect sizes — 0.28 margin → ≤0.036 abs — dwarf the reference's 0.003 seed sd); the reading that send-on-delta staleness and LIF spiking are *different degradation axes* (so "output degradation" in the datapath principle was too coarse a category) remains an interpretation, not an experimentally separated attribution — the clean ablation (hold `uref` for a random unit subset at matched r_out) was pre-registered at a9ff715 and remains unrun.
