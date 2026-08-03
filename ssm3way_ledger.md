@@ -2250,3 +2250,54 @@ The comparison is Δbpc vs the arm's own no-gate reference, at matched r_out:**
 Driver `run_outrand.sh <gpu>` (lock-dir work queue, idempotent, skips finished cells).
 Results land as `ssm3way_runs/{digital_charlm_s0_reg_n0.02,analog_charlm_s0_theta0.15}_pr<p>.json`;
 markers in `copy_logs/outrand.log`.
+
+## 2026-08-03 — Readout-staleness attribution ablation: CRITERION (A) — staleness itself is fatal; the send-on-delta selection rule is exonerated
+
+Row from commit 8dac9bb (`--out_prand`, driver `run_outrand.sh`): readout units held by a
+per-unit per-step Bernoulli draw at send probability p, independent of the delta; char-LM,
+seed 0, 6 ep/1.4M chars; p matched to the theta row's measured r_out. All 6 cells complete.
+
+Δbpc vs each arm's own no-gate reference (digital reg n0.02 = 3.0309; analog θ=0.15 = 3.1848):
+
+| arm     | rule       | r_out  | bpc    | Δbpc vs no-gate |
+|---------|------------|--------|--------|-----------------|
+| digital | random p=0.90 | 0.900 | 4.0962 | **+1.0653** |
+| digital | θ=0.02        | 0.901 | 4.0564 | +1.0255 |
+| digital | random p=0.59 | 0.590 | 4.1793 | +1.1484 |
+| digital | θ=0.1         | 0.594 | 4.0667 | +1.0358 |
+| digital | random p=0.26 | 0.260 | 4.3232 | +1.2923 |
+| digital | θ=0.5         | 0.258 | 4.0613 | +1.0304 |
+| digital | random p=0.08 | 0.080 | 4.4684 | **+1.4375** |
+| digital | θ=1.0         | 0.084 | 4.0364 | +1.0055 |
+| analog  | random p=0.90 | 0.900 | 4.1064 | **+0.9216** |
+| analog  | θ_out=0.1     | 0.895 | 4.1265 | +0.9417 |
+| analog  | random p=0.26 | 0.260 | 4.4239 | +1.2391 |
+| analog  | θ_out=1.0     | 0.258 | 4.1895 | +1.0047 |
+
+**Pre-registered verdict (criteria from commit 8dac9bb, applied as written):**
+- **(A) CONFIRMED on both arms**: random staleness at p≈0.90 costs +1.065 bpc (digital) and
+  +0.922 bpc (analog), both ≥ the 0.7 threshold. Staleness of the readout input — holding the
+  last-sent value instead of recomputing — is *itself* the fatal mechanism. The previously
+  flagged interpretation ("send-on-delta staleness ≠ the LIF output-spiking degradation axis")
+  is now experimentally supported on char-LM, no longer inference-only.
+- **(B) is excluded**: the selection rule is NOT the culprit. At every matched r_out the
+  delta-triggered gate is *no worse* than random — and at low rates it is clearly better
+  (digital r_out≈0.08: θ 4.036 vs random 4.468, a 0.43 bpc gap in θ's favour). So
+  send-on-delta is already a *good* selection rule; there is no smarter gating rule to find.
+  The readout-energy route stays CLOSED.
+- Secondary shape: the random-rule penalty is *monotone* in held fraction (+1.07→+1.44 as
+  p 0.90→0.08) while the θ-rule penalty is flat (~+1.01 to +1.04 across a 10.7× rate range).
+  Reading: the step function at gate-on is the staleness cost; the θ rule's delta-triggered
+  updates then keep the marginal cost of further sparsification near zero, whereas random
+  holding keeps paying. Both facts point the same way: the ~+1.0 bpc floor is set by
+  staleness, not by which units are held.
+
+**Effect on the phase verdict (73c99e6): STRENGTHENED, unchanged in content.** The readout's
+75% energy share is stranded: recompute-every-step spiking (LIF) survives quality but saves
+no MAC energy; any hold-based scheme pays ~+1.0 bpc the moment it turns on, under the best
+selection rule available.
+
+**Caveats (owed with any use of this row):** n=1 seed (effect sizes ~1.0 bpc vs seed sd ~0.03
+on this task/budget); char-LM only — the copy-task collapse's attribution to staleness remains
+an inference from the shared mechanism, the copy arm of this ablation was not run; analog arm
+has 2 rate points vs digital's 4.
