@@ -235,3 +235,25 @@ was annotated. Kept for the record:
 
 Numbers for any new slide should be copied from `imam_ssm_memo_v3.md`, not re-derived, so the deck cannot drift from
 the run JSONs.
+
+## PPTX EDIT LIST #2 — APPLIED 2026-08-03 (energy datapath; see talk/patch_deck2.py)
+
+Applied by `talk/patch_deck2.py`, which aborts on any drifted anchor:
+
+1. **Slide 8 (07 · SSM RESULTS)** gained a fifth, full-width band — *"The energy is not where the
+   mechanisms are"*: readout 75% of analog's pJ/token vs recurrence 8%; free-recurrence ceiling
+   1.74×; the event-driven readout recovers the energy but costs ~+1.0 bpc on char-LM and all of
+   copy's margin at 3 seeds; converters priced at 0.00–0.33%.
+2. **Slide 9 (08 · PROPOSED DIRECTIONS), direction 01** — the "analog storage element and converter
+   are unpriced" clause was false after the decomposition and was replaced.
+
+**Speaker line for the new band** (say it as a negative, it is the credibility move): *"We tried to
+turn the activity win into a measured energy win and failed, and the failure is a hardware-
+architecture statement, not an algorithm one — at this vocabulary the readout is the largest matrix
+in the model and every neuromorphic mechanism in this literature, including mine, acts on the 8%
+term. The one honest consolation is that the failure confirms my own principle out of sample: an
+event readout is an output degradation, and char-LM is exactly the workload that needs an exact
+output."* If asked why not just gate smarter: the random-hold ablation shows staleness itself is
+fatal and send-on-delta is already the better selection rule — no gating rule reopens this.
+
+Do not quote a pJ figure without the quality it purchased, and never call the proxy a measurement.

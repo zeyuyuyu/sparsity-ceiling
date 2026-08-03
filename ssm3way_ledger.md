@@ -2413,3 +2413,39 @@ open tick-work again — remaining items are USER decisions: (1) send `talk/imam
 to Imam (outward-facing, never auto-send), (2) arXiv-submit paper 2 (now includes the
 energy-datapath section), (3) optional paper 1 v2. Deck (`talk/`) does NOT yet carry the
 stranded-readout result — a candidate future zero-GPU tick if the user wants the deck current.**
+
+---
+
+## 2026-08-03 ~14:15Z tick — TALK DECK carries the stranded-readout result (zero-GPU)
+
+The last stale Imam-facing artifact is now current. `talk/patch_deck2.py` (new, anchored the same
+way as `patch_deck.py`: every target matched by shape id AND asserted text + geometry, so a drifted
+deck aborts instead of half-applying) makes two edits:
+
+1. **Results slide (07 · SSM RESULTS) gains a fifth block, "The energy is not where the mechanisms
+   are":** the readout carries 75% of analog's pJ/token and the recurrence 8%; even a free
+   recurrence costs 1.74×; gating the readout recovers the energy but costs ~+1.0 bpc on char-LM and
+   all of copy's margin at 3 seeds; converters, finally priced, are 0.00–0.33%. Numbers copied from
+   ledger entries c8b596f/a9ff715, 73c99e6, 60d627c, db7c13b and paper2 sec 8.4 — none re-derived.
+2. **Directions slide, direction 01 de-staled:** it claimed "the analog storage element and
+   converter are unpriced", which the energy decomposition falsified. Now reads "Finished in
+   simulation, including the energy datapath: the readout's 75% share resisted every gating
+   mechanism tested. What is unfinished is physical — every pJ figure is a 45nm proxy."
+
+**Layout was verified by rasterizing the built PDF, not by trusting the save — and the check earned
+its keep.** The first attempt added a fifth full-height block and shifted the two existing rows up to
+make room; the render showed the new block's rectangle overlapping rows 03/04 and its 303-char body
+running to the box edge. Restored from the pre-patch backup (`/tmp/deck_pre_patch2.pptx`) and
+re-ran with the block as a **slim full-width band** (title and body side by side, 1.00in tall
+instead of 1.85in) in the empty strip between row 2 and the footer, with the four existing blocks
+left untouched. Second render is clean on both slides: no overlap, no overflow, band clears the
+footer. Body trimmed 303 → 226 chars with **no claim, number or caveat dropped**.
+
+Claims discipline held: the block states a NEGATIVE (no pJ win), keeps the 3-seed qualifier, and
+prices converters under the proxy rather than calling them measured. pptx→pdf conversion is still
+LOCAL-only (server has no LibreOffice); PDF is 10 pages, 169 kB.
+
+**THREAD STATE: unchanged and still NO open tick-work.** Every Imam-facing artifact (memo v3,
+paper2 + PDF, deck + PDF, speaker notes) is now post-retraction and carries the energy-datapath
+verdict. Remaining items are USER decisions: (1) send `talk/imam_ssm_memo_v3.md` to Imam
+(outward-facing, never auto-send), (2) arXiv-submit paper 2, (3) optional paper 1 v2.
