@@ -1,0 +1,35 @@
+{
+  "variant": "digital",
+  "task": "copy",
+  "seed": 0,
+  "params": 87889,
+  "vocab": 17,
+  "E": 64,
+  "H": 256,
+  "L": 33,
+  "epochs": 30,
+  "lr": 0.002,
+  "lam": 0.0,
+  "target": null,
+  "analog": null,
+  "dig_reg": {
+    "dig_noise": 0.02,
+    "dig_bits": 0,
+    "wd": 0.0
+  },
+  "out_theta": 0.1,
+  "bpc": 359.9683,
+  "ppl": 485165195.41,
+  "acc": 0.0625,
+  "rate_emitted": 1.0,
+  "rate_state": 1.0,
+  "rate_out": 0.9979,
+  "energy_pJ_per_token": 381918.174,
+  "energy_pJ_per_token_conservative": 381918.174,
+  "energy_terms_pJ": {
+    "W_in_MAC": 75366.4,
+    "state_MAC": 1177.6,
+    "W_mix_MAC": 301465.6,
+    "W_out_event_at_ro": 3908.5739
+  }
+}

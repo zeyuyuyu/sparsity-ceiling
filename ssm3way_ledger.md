@@ -2115,3 +2115,58 @@ regularization; the ONLY delta is the readout gate). Chance acc 0.0625.
 
 **Caveats owed before any paper use:** n=1 seed (3-seed confirmation required, as for the char-LM row);
 pJ accounting for the copy datapath must reuse `energy_datapath.py`'s terms, not the headline proxy alone.
+
+
+### 2026-08-03 ~08:45Z — eventro-copy row, M=16 COLUMN IN (7/14 cells): the pre-registered "most likely" outcome is FALSIFIED — the event readout does not merely degrade copy at M=16, it ELIMINATES it, at every threshold
+
+**Status:** L=33 (M=16) column complete (7 θ cells, seed 0); L=65 (M=32) column training on 7 GPUs
+(launched 08:37Z as L=33 workers freed). This entry applies the pre-registered criteria (commit
+94a415f) to the half that is in. n=1 seed — same caveat as pre-registered.
+
+**Reference (3 seeds, identical budget+σ=0.02 noise reg, no readout gate):** acc **0.6628±0.0088** /
+bpc 1.2702±0.0285. Chance acc 0.0625; above-chance margin 0.6003.
+
+**Gated cells (L=33, s0), acc / margin kept / r_out / bpc:**
+
+| out_theta | acc | margin kept | r_out | bpc |
+|---|---|---|---|---|
+| 0.02 | 0.0638 | 0.002 | 0.9966 | 73.02 |
+| 0.05 | 0.0627 | 0.000 | 0.9990 | 23.38 |
+| 0.10 | 0.0625 | 0.000 | 0.9979 | 359.97 |
+| 0.25 | 0.0635 | 0.002 | 0.9467 | 4.05 |
+| 0.50 | 0.0704 | 0.013 | 0.9941 | 4.36 |
+| 1.00 | 0.0640 | 0.002 | 0.9064 | 4.10 |
+| 2.00 | 0.0633 | 0.001 | 0.7462 | 1304.85 |
+
+**Verdict on the M=16 half, per the pre-registered criteria:**
+- Criterion (1) CONFIRMATION is not met at any θ (no cell even reaches r_out ≤ 0.5, and margin kept
+  peaks at 0.013 vs the required ≥ 0.85).
+- Criterion (4), the pre-registered MOST-LIKELY branch ("confirmation at M=16, weaker at M=32"),
+  is **falsified outright** — M=16 is not the easy case, it is a total collapse.
+- Criterion (2) REFUTATION requires collapse "at BOTH L", so the formal refutation verdict WAITS for
+  the running L=65 column. But the M=16 half already exceeds the refutation shape: margin < 0.5 kept
+  at r_out ≈ 1 — measured ≤ 0.013 at r_out 0.91–1.00.
+
+**The signature is worse than char-LM's step function, and it looks like a TRAINING failure, not an
+inference-quality tax.** On char-LM the gate cost a flat ~+1.0 bpc but the model still functioned;
+here acc sits at exactly chance at every θ, including θ=0.02 where 99.66% of readout units emit
+every step — i.e. the gate destroys copy while gating essentially nothing. And bpc is wildly
+non-monotone in θ (73 / 23 / 360 / 4.05 / 4.36 / 4.10 / 1305): the ≈4.0 cells learned a uniform
+output (chance bpc = log2 17 ≈ 4.09 here vs 4.000 for K=16 payload), the 23–1305 cells are
+confidently wrong — divergence, not graceful degradation. Mechanistic reading (unverified, flag as
+interpretation): copy's recall segment demands a *different* symbol every step through a readout
+whose held-value path the straight-through gate trains poorly; the recurrence-side send-on-delta
+never showed this because the state carries its own dynamics. A stale-readout mechanism that costs
++1.0 bpc on the workload that tolerates output loss WORST (char-LM) and 100% of the margin on the
+workload that tolerates it BEST (copy, where LIF output-spiking kept 0.87) means **θ-gated
+send-on-delta staleness is not the same degradation axis as LIF output-spiking** — the
+datapath-degradation principle's axis ("output degradation") was too coarse for this prediction.
+
+**What this means for the energy-datapath question (pending L=65 confirmation):** the one
+pre-registered route left to a real measured pJ win — digital-state + event-readout on
+precise-recall — does not survive contact with the data at M=16. If L=65 matches, the honest
+verdict is the pre-registered refutation sentence: **"the readout's 75% energy share is stranded on
+both workload classes"** — sparsifying the readout by *holding stale values* is quality-fatal
+everywhere tested, and the only readout sparsification that works (LIF output-spiking, copy) is one
+this energy model prices as events already. n=1 seed; do not fold into paper2 before the L=65
+column and (if any signal survives) 3-seed confirmation.
