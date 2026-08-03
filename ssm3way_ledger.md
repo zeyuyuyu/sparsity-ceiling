@@ -2301,3 +2301,34 @@ selection rule available.
 on this task/budget); char-LM only — the copy-task collapse's attribution to staleness remains
 an inference from the shared mechanism, the copy arm of this ablation was not run; analog arm
 has 2 rate points vs digital's 4.
+
+## 2026-08-03 ~11:15Z — 3-SEED CONFIRMATION ROW LAUNCHED (seeds 1,2 of the gated-readout cells) — criteria pre-registered before any cell
+
+The energy-datapath phase verdict (73c99e6) and the staleness attribution (60d627c) rest on
+n=1-seed gated cells. This row adds seeds 1,2 at three representative operating points per
+curve (`run_seed12.sh`, lock-dir queue; 30 cells, ~10 GPU-h):
+
+- **copy eventro**: digital reg n0.02, L∈{33,65} × out_theta∈{0.02,0.1,1.0} × s∈{1,2} (ep30/n80k)
+- **char-LM eventro**: digital reg n0.02 AND analog theta0.15 × out_theta∈{0.02,0.1,1.0} × s∈{1,2} (6ep/1.4M)
+- **outrand**: digital pr∈{0.90,0.08}, analog pr0.90 × s∈{1,2} (6ep/1.4M)
+
+The untested thetas {0.05,0.25,0.5,2.0} and outrand rates {0.59,0.26} stay n=1 **by design** —
+this row confirms the claims at the operating points that carry them, not the full curves.
+References for paired Δbpc/margin: the existing 3-seed no-gate cells
+(`digital_charlm_s*_reg_n0.02`, `analog_charlm_s*_theta0.15`, `digital_copy_L{33,65}_s*_reg_n0.02_ep30`).
+
+**PRE-REGISTERED CRITERIA (written before any cell landed):**
+
+1. **CONFIRMED** if, at 3-seed means: (a) the char-LM readout-gate penalty is ≥ +0.7 bpc vs
+   each arm's own no-gate reference at EVERY tested out_theta (s0 values: +0.90 to +1.05); (b)
+   copy margin kept ≤ 0.15 at every tested theta at BOTH L (s0: ≤0.013 M=16, ≤0.13 M=32); (c)
+   outrand: random-hold ≥ +0.7 bpc at p=0.90 on both arms AND delta-triggered ≤ random at the
+   matched low rate (s0: theta 0.43 bpc better at r_out≈0.08). Then the phase verdict and the
+   attribution both hold at 3 seeds and the n=1 caveat is retired for the cited claims.
+2. **WEAKENED** if any tested cell's 3-seed mean effect is below HALF its s0 size — name the
+   claim it carries and re-scope it; do not average it away.
+3. **Most likely: (1)** — s0 effect sizes (0.9–1.4 bpc; total collapse vs ref sd 0.003–0.009)
+   are 30–300× the known seed noise of ungated cells.
+
+Caveat that stays regardless: the copy-collapse attribution to staleness remains an inference
+from the char-LM ablation (the copy arm of outrand is not run).
