@@ -1971,3 +1971,114 @@ work queue, idempotent.
    total (the readout is 47-79%), and the local NMNIST copy is an incomplete
    3.1 MB partial `test.zip` with no working outbound proxy.  Low payoff, high
    infra cost; the readout is the right target first.
+
+### Step 2 RESULT — the event-readout row is COMPLETE (14/14) and the phase goal is answered NO: the activity win does NOT convert into a pJ win by this route
+
+Char-LM seed 0, 6 ep / 1.4M chars, reference = **digital + state-noise 0.02**
+(the post-retraction correct comparator), bpc 3.0309 @ 712,448 pJ/token.
+`pJ_pub` prices W_out at `H*V*r_out*E_AC`; `pJ_fev` additionally event-prices
+W_in and charges the analog converter+storage terms.
+
+| arm | out_theta | bpc | Δbpc vs ref | r_out | r_z | pJ_pub | × | pJ_fev | × |
+|---|---|---|---|---|---|---|---|---|---|
+| analog θ=0.15 | 0 | 3.1848 | +0.154 | 1.000 | 0.618 | 446508 | 1.60 | 111272 | 6.40 |
+| analog θ=0.15 | 0.02 | 4.0837 | **+1.053** | **0.979** | 0.615 | 175913 | 4.05 | 109627 | 6.50 |
+| analog θ=0.15 | 0.05 | 4.0903 | +1.059 | 0.948 | 0.625 | 174470 | 4.08 | 108331 | 6.58 |
+| analog θ=0.15 | 0.1 | 4.1265 | +1.096 | 0.895 | 0.613 | 170331 | 4.18 | 104025 | 6.85 |
+| analog θ=0.15 | 0.25 | 4.0976 | +1.067 | 0.741 | 0.637 | 161631 | 4.41 | 95669 | 7.45 |
+| analog θ=0.15 | 0.5 | 4.1496 | +1.119 | 0.529 | 0.658 | 149038 | 4.78 | 83385 | 8.54 |
+| analog θ=0.15 | 1.0 | 4.1895 | +1.159 | 0.258 | 0.683 | 132789 | 5.37 | 67512 | 10.55 |
+| analog θ=0.15 | 2.0 | 4.2257 | +1.195 | 0.100 | 0.664 | 121331 | 5.87 | 55781 | 12.77 |
+| digital+n0.02 | 0 | 3.0309 | 0.000 | 1.000 | 1.000 | 712448 | 1.00 | 382822 | 1.86 |
+| digital+n0.02 | 0.02 | 4.0564 | **+1.026** | **0.901** | 1.000 | 436959 | 1.63 | 376338 | 1.89 |
+| digital+n0.02 | 0.05 | 4.0496 | +1.019 | 0.764 | 1.000 | 427990 | 1.66 | 367367 | 1.94 |
+| digital+n0.02 | 0.1 | 4.0667 | +1.036 | 0.594 | 1.000 | 416873 | 1.71 | 356250 | 2.00 |
+| digital+n0.02 | 0.25 | 4.0450 | +1.014 | 0.357 | 1.000 | 401377 | 1.78 | 340755 | 2.09 |
+| digital+n0.02 | 0.5 | 4.0613 | +1.030 | 0.258 | 1.000 | 394899 | 1.80 | 334277 | 2.13 |
+| digital+n0.02 | 1.0 | 4.0364 | +1.006 | 0.084 | 1.000 | 383520 | 1.86 | 322898 | 2.21 |
+| digital+n0.02 | 2.0 | 4.1286 | +1.098 | 0.012 | 1.000 | 378765 | 1.88 | 318148 | 2.24 |
+
+**PRE-REGISTERED CRITERION (1) IS REFUTED.** It required a threshold whose
+quality cost is ≤0.05 bpc.  The *cheapest* readout gate in the row costs
+**+0.90 bpc** (analog, vs its own out_theta=0 cell) and every other threshold
+costs more.  The readout is a far worse place to buy sparsity than the
+recurrence: gating the recurrence bought 1.60× for **+0.160 bpc**; gating the
+readout costs **~+1.0 bpc before it buys any meaningful sparsity at all**.
+
+**THE ACTUAL FINDING, AND IT IS NOT ABOUT SPARSITY.** At `out_theta`=0.02 the
+analog arm still emits on **97.9%** of readout units — essentially nothing is
+gated — and quality has *already fully collapsed* (+0.90 bpc).  Driving r_out
+from 0.979 down to 0.100 (a 10× sparsification) then costs only **+0.14 bpc
+more**.  So the penalty is a **step function at the moment the hold is switched
+on**, near-flat thereafter, and is therefore a property of the **mechanism**, not
+of the sparsity it purchases.  Mechanism, verified in code rather than inferred:
+the accumulator is *exactly* `acc_t = W_out·uref_t + b`, i.e. a readout of the
+**last-sent (stale) value** of `u = W_mix(z)`, so a per-unit staircase error of
+≤`out_theta` is summed across H=256 units into every logit, and the readout
+becomes **stateful** — each `u_s` now influences all later logits, changing
+credit assignment for the whole sequence.  Small per-unit error, large logit
+error, harder optimization.
+
+**PRE-REGISTERED CRITERION (2) — the fair-comparator test — CONFIRMED, and it is
+the reason the route fails.** The digital arm gets the same readout gate and the
+same ~+1.0 bpc penalty, so **no part of this energy saving belongs to the analog
+state**; whatever the readout gate is worth is worth it to a digital SSM too.
+
+**PRE-REGISTERED PREDICTION (3) IS WRONG, in the opposite direction.** It said
+analog's `r_out` should fall *below* digital's at matched threshold because its
+`z` is already gated.  Measured, at `out_theta`=0.1: analog **0.895** vs digital
+**0.594** — analog's readout input is *jumpier*, not smoother, because gating `z`
+makes it jump discontinuously whenever a unit emits, which drives *more* readout
+events.  Record as a wrong prediction, not a nuance.  Related minor observation:
+the recurrence rate `r_z` drifts *up* with the readout gate (0.618 → 0.683), so
+the two gates interact rather than compose independently.
+
+**OUT-OF-SAMPLE SUPPORT FOR THE DATAPATH-DEGRADATION PRINCIPLE (the one positive
+here).** The principle says char-LM needs an exact graded **output** and
+tolerates a lossy **state**.  Against the same regularized reference: degrading
+the *state* (analog send-on-delta) costs **+0.160 bpc**, while two mechanically
+unrelated degradations of the *output* cost **+1.026/+1.053** (send-on-delta
+readout hold) and **+1.367** (spikeout's LIF output) — a **6–9× larger** penalty.
+Stated honestly as order-of-magnitude agreement between two unrelated output
+degradations; the two numbers are **not** equal (+1.03 vs +1.37) and must not be
+presented as a quantitative match.
+
+**VERDICT ON THE PHASE GOAL (item 4): NO — analog does not win on pJ, and the
+blocking layer is now precisely located.** Chain of evidence:
+1. W_out carries **75%** of analog's pJ and 47% of digital's; the recurrence
+   carries **8%**.  The energy was never where the mechanisms were.
+2. The current datapath's ceiling is **1.74×** even with a free recurrence, so
+   the published 1.60× is already at **92%** of that ceiling.
+3. The readout *can* be made event-driven (r_out to 0.012, up to 5.87× published
+   / 12.8× full-event), but at **~+1.0 bpc on char-LM regardless of threshold**,
+   and the same option is available to digital.
+4. The previously-unpriced analog costs are **not** the obstacle: over four
+   decades of converter cost and a 25× range of storage cost they are
+   **0.00–0.33%** of the analog total at H=256.
+So on char-LM the ~27–62% event-activity win is **not convertible** into a pJ win
+by removing the MAC-priced layers.  The honest headline for this workload remains
+the published energy-for-quality tradeoff (1.60× for +0.160 bpc).
+
+**WHAT THE PRINCIPLE PREDICTS NEXT, and it is the one route left to a real
+measured pJ win.** An event readout is an *output* degradation, so it should be
+expensive exactly where an exact output matters (char-LM — confirmed above) and
+**cheap on precise-recall**, where output-spiking was already the *best*
+neuromorphic variant (spikeout kept 0.87/0.42 of the digital margin at M=16/32
+while analog kept 0.50/0.28).  **Next tick: run the event-readout sweep on the
+copy task** (L=33/65, ep30/n80k, the established budget).  Pre-registered now:
+if the readout gate is cheap on copy, that is the first configuration in the
+project where a large pJ cut is bought at little quality cost, and it would be a
+*digital-state + event-readout* design, not an analog one.  If it is expensive
+there too, the honest conclusion is that event-driven readouts do not pay on
+either workload and the readout's 75% energy share is simply not recoverable at
+this scale.
+
+**Scope/caveats.** n=1 seed (calibration row, per project convention — a
+3-seed confirmation is owed before any of this is quoted in the paper); the
++1.0 bpc step is large and consistent across 14 cells and two arms, so seed noise
+(digital sd ~0.02 bpc) cannot explain it, but the *mechanism* attribution
+(staleness summed over H vs altered credit assignment) is **reasoned from the
+code, not experimentally separated** — an ablation that holds `uref` fixed for a
+random subset of units at matched r_out would separate them.  All pJ figures
+remain a 45 nm Horowitz proxy from simulation, not measured silicon.
+Reproduce: `python agg_eventro.py`, `python energy_datapath.py ssm3way_runs`.
