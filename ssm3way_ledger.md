@@ -1877,3 +1877,97 @@ The committed `paper2/paper2.pdf` was 2 commits stale vs sources (e05324b IMSSA 
 - **Transfer integrity:** post-scp md5 `6880c004940d197e6776056322ee2a9b` and byte size match the local build exactly.
 - **State:** 7 GPUs visible (0–6, GPU 7 still absent), all idle, zero ssm3way.py procs. Empirical arm closed; no data cells.
 - **Committed PDF now matches committed sources.** Remaining items are USER decisions only: send `talk/imam_ssm_memo_v3.md` to Imam; arXiv-submit paper 2.
+
+## ENERGY-DATAPATH PHASE — 2026-08-03
+
+New phase goal: turn the measured event-activity win into a measured pJ win by
+removing the MAC-priced input/output layers, or record honestly why it cannot be
+done.  Prior state: analog-state SSM reaches ~27-61% event activity at a +0.160
+bpc cost vs the noise-regularized digital reference on char-LM, but the pJ proxy
+credits event pricing ONLY to the recurrence W_mix, so the published number is
+446k vs 712k pJ/token = 1.60x -- an activity win, not a datapath win.
+
+### Step 1 — DECOMPOSITION (`energy_datapath.py`, zero-GPU, no new training)
+
+Per-term shares of the PUBLISHED proxy, char-LM (V=284, E=64, H=256), computed
+from the existing run JSONs (no quality number re-derived):
+
+| cell | n | bpc | r_z | pJ/tok | W_in% | W_mix% | W_out% |
+|---|---|---|---|---|---|---|---|
+| digital (any reg arm) | 3 | 3.0338 (n0.02) | 1.000 | 712448 | 10.6 | 42.3 | **46.9** |
+| analog th=0.15 | 3 | 3.1936 | 0.612 | 446142 | 16.9 | 8.1 | **75.0** |
+| analog th=1.0 | 3 | 3.3595 | 0.266 | 425746 | 17.7 | 3.7 | **78.6** |
+| spikeout | 3 | 4.3978 | 0.369 | 432753 | 17.4 | 5.0 | **77.3** |
+| spikestate | 3 | 3.6205 | 0.645 | 156834 | 48.1 | 24.3 | 26.9 |
+
+**THE BLOCKING LAYER IS THE READOUT, NOT THE RECURRENCE.** W_out carries 75% of
+the analog variant's pJ/token and 47% of digital's, while W_mix -- the only term
+the published proxy prices as event-driven for analog -- carries 8%.  At V=284,
+H*V = 72,448 exceeds H*H = 65,536, so the readout is the largest single matrix in
+the model.  Every neuromorphic mechanism in this project acts on the recurrence.
+
+**CEILING under the current datapath:** analog with a *free* recurrence
+(r_z -> 0) still costs **410,040 pJ/token = 1.74x** vs the regularized digital
+reference.  The published 1.60x is therefore already at 92% of everything
+recurrence sparsification can ever deliver here.  No threshold, no better event
+code, and no additional sparsity can move this -- it is a datapath property.
+
+**PROJECTION (assumption, not measurement: r_in = r_out = the cell's measured
+r_z):** re-pricing the readout alone takes analog th=0.15 from 446k (1.6x) to
+**152k (4.7x)**; re-pricing input and readout takes it to **85k (8.3x)**, while
+the same treatment gives digital only 383k (1.9x) because its readout input
+changes every step.  Under a fully event-driven datapath the perverse ranking is
+also fixed: spikestate is **no longer cheapest** (91.0k) -- analog at th=0.75
+costs 53.1k with bpc 3.293 vs spikestate's 3.621.
+
+**Step 3 of the goal — pricing the unpriced — does NOT change the verdict.**
+Sweeping the ADC/DAC conversion cost over four decades (0.01-1.0 pJ per graded
+event) and the analog storage element over 0-0.5 pJ per unit per timestep, the
+converter+storage terms are **0.00%-0.33%** of the analog total.  At H=256 they
+are 2-4 orders of magnitude below the matrix terms.  This is honest in both
+directions: it removes "unpriced converters" as an objection to the analog route
+at this scale, and it does NOT license claiming converters are free in general --
+they would matter at large H once the matrices are cheap.
+
+### Step 2 — EVENT-DRIVEN READOUT implemented and row LAUNCHED
+
+`ssm3way.py` gains `--out_theta` (default 0 => every previously-run cell is
+bit-unaffected).  The readout becomes an incremental send-on-delta accumulation:
+`d_t = u_t - uref; m_t = |d_t| > out_theta; acc += W_out_w @ (d_t*m_t); uref += d_t*m_t`,
+so only emitting units of `u = W_mix(z)` ever touch W_out.  **Verified exact, not
+assumed:** at out_theta=1e-12 every unit emits and the incremental logits match
+the dense readout to **1.4e-7 relative** (float32 noise).  Energy prices W_out at
+`H*V*r_out*E_AC` when the gate is on; `rate_out` is now measured and recorded.
+
+Row (14 cells, char-LM seed 0, 6 ep / 1.4M chars, same budget as the published
+row): `{analog th=0.15, digital+noise0.02} x out_theta in {0.02,0.05,0.1,0.25,0.5,1.0,2.0}`.
+Workers on GPUs 4-7 only (haomo holds GPU 0 with a sharded job; 1-3 left free as
+headroom for their remaining shards).  Driver `run_eventreadout.sh`, lock-dir
+work queue, idempotent.
+
+### PRE-REGISTERED READING (written and committed BEFORE any cell landed)
+
+1. **The projection's assumption is what is on trial.** Confirmation = at a
+   threshold whose quality cost is small (<=0.05 bpc vs the same arm at
+   out_theta=0), analog's measured `r_out` is at or below its `r_z`=0.612, so the
+   projected 4.7x/8.3x stand.  Refutation = a low `r_out` is only reachable at a
+   large bpc cost, i.e. the readout is a *worse* place to buy sparsity than the
+   recurrence.
+2. **The fair-comparator test, which matters more than (1).** The digital arm
+   gets the same event readout.  If digital captures most of the same benefit,
+   then the energy was never in the analog state at all -- the honest verdict
+   becomes *"the readout is where the energy is, and an event-driven readout is
+   available to a digital SSM too"*, which is a **negative for the analog route
+   as such** while being the most useful design finding of this phase.  Analog
+   should still win somewhat, because its `u = W_mix(z)` is fed by an
+   already-gated `z` and so should change on fewer steps than digital's dense
+   GELU output.
+3. **Most likely outcome, stated up front:** partial (2) -- both arms benefit
+   greatly, analog's `r_out` lands below digital's at matched threshold, so
+   analog keeps a real but *smaller* edge than the 4.5x the projection implies,
+   and the phase's headline becomes a datapath claim rather than an analog claim.
+4. Goal item (1) -- a sparse-input streaming task to make W_in legitimately
+   event-priced -- is **deferred and partly blocked**: W_in is only 11-18% of the
+   total (the readout is 47-79%), and the local NMNIST copy is an incomplete
+   3.1 MB partial `test.zip` with no working outbound proxy.  Low payoff, high
+   infra cost; the readout is the right target first.

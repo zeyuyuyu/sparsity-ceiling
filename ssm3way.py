@@ -70,6 +70,10 @@ def get_args():
     p.add_argument("--dig_bits", type=int, default=0,
                    help="regularization control: state quantization on DIGITAL")
     p.add_argument("--wd", type=float, default=0.0, help="Adam weight decay")
+    p.add_argument("--out_theta", type=float, default=0.0,
+                   help="event-driven readout: send-on-delta threshold on the "
+                        "readout input u=W_mix(z).  0 = dense MAC readout (old "
+                        "behaviour, so every previously-run cell is unaffected).")
     p.add_argument("--out", required=True)
     return p.parse_args()
 
@@ -139,13 +143,17 @@ class SSM(nn.Module):
         href = torch.zeros(B, self.H, device=dev)           # analog last-sent value
         mem = self.lif.init_leaky() if self.variant in ("spikeout", "spikestate") else None
         a = self.decay()
-        logits, z_act, s_act = [], [], []
+        logits, z_act, s_act, o_act = [], [], [], []
+        ot = self.cfg.out_theta
+        uref = torch.zeros(B, self.H, device=dev)       # readout last-sent value
+        acc = self.W_out.bias.unsqueeze(0).expand(B, -1)  # running logits
         for t in range(L):
             e = self.emb(x[:, t])
             if self.variant == "spikestate":
                 cur = a * h + self.W_in(e) + self.W_mix(h)
                 h, mem = self.lif(cur, mem)
                 s_act.append(h.mean()); z_act.append(h.mean())
+                o_act.append(h.mean())     # readout is already spike-driven
                 logits.append(self.W_out(h))
                 continue
             h = a * h + self.W_in(e)
@@ -166,32 +174,48 @@ class SSM(nn.Module):
                 href = href * (1 - m) + h.detach() * m
                 z = h * m.detach()
                 z_act.append(m.mean())
-            logits.append(self.W_out(self.W_mix(z)))
-        return (torch.stack(logits, 1),
-                torch.stack(z_act).mean(), torch.stack(s_act).mean())
+            u = self.W_mix(z)
+            if ot > 0:
+                d = u - uref
+                m_o = (d.abs() > ot).float()
+                uref = uref + (d * m_o).detach()
+                acc = acc + torch.nn.functional.linear(d * m_o, self.W_out.weight)
+                o_act.append(m_o.mean())
+                logits.append(acc)
+            else:
+                o_act.append(torch.ones((), device=dev))
+                logits.append(self.W_out(u))
+        return (torch.stack(logits, 1), torch.stack(z_act).mean(),
+                torch.stack(s_act).mean(), torch.stack(o_act).mean())
 
 
 # ---------------------------------------------------------------- energy
-def energy(a, V, r_z, r_s):
+def energy(a, V, r_z, r_s, r_o=1.0):
     """pJ per token, per-term, explicit about every assumption."""
     E, H = a.E, a.H
     win = E * H; wmix = H * H; wout = H * V
     terms = {}
+    # event-driven readout: only emitting units accumulate into W_out.
+    ev_out = a.out_theta > 0 and a.variant != "spikestate"
+    w_out_term = ("W_out_event_at_ro", wout * r_o * E_AC) if ev_out else \
+                 ("W_out_MAC", wout * E_MAC)
     if a.variant == "digital":
         terms = {"W_in_MAC": win * E_MAC, "state_MAC": H * E_MAC,
-                 "W_mix_MAC": wmix * E_MAC, "W_out_MAC": wout * E_MAC}
+                 "W_mix_MAC": wmix * E_MAC, w_out_term[0]: w_out_term[1]}
         tot = sum(terms.values()); tot_cons = tot
     elif a.variant == "spikeout":
         terms = {"W_in_MAC": win * E_MAC, "state_MAC": H * E_MAC,
-                 "W_mix_AC_at_rz": wmix * r_z * E_AC, "W_out_MAC": wout * E_MAC}
+                 "W_mix_AC_at_rz": wmix * r_z * E_AC, w_out_term[0]: w_out_term[1]}
         tot = sum(terms.values()); tot_cons = tot
     elif a.variant == "analog":
         # analog leak/integrate is physical -> priced at AC.  graded event priced
         # optimistically (AC) and conservatively (MAC); truth is in between.
         terms = {"W_in_MAC": win * E_MAC, "state_analog_AC": H * E_AC,
-                 "W_mix_event_at_rz": wmix * r_z * E_AC, "W_out_MAC": wout * E_MAC}
+                 "W_mix_event_at_rz": wmix * r_z * E_AC, w_out_term[0]: w_out_term[1]}
         tot = sum(terms.values())
-        tot_cons = win * E_MAC + H * E_AC + wmix * r_z * E_MAC + wout * E_MAC
+        # conservative: graded events priced as MACs, in the recurrence AND readout
+        tot_cons = (win * E_MAC + H * E_AC + wmix * r_z * E_MAC
+                    + (wout * r_o * E_MAC if ev_out else wout * E_MAC))
     else:                                                    # spikestate
         terms = {"W_in_MAC": win * E_MAC, "state_MAC": H * E_MAC,
                  "W_mix_AC_at_rs": wmix * r_s * E_AC, "W_out_AC_at_rs": wout * r_s * E_AC}
@@ -202,19 +226,20 @@ def energy(a, V, r_z, r_s):
 # ---------------------------------------------------------------- train / eval
 def evaluate(net, va, V, a, dev):
     x, y, m = va
-    net.eval(); tot = 0.0; ntok = 0; corr = 0; rz = 0.0; rs = 0.0; nb = 0
+    net.eval(); tot = 0.0; ntok = 0; corr = 0; rz = 0.0; rs = 0.0; ro = 0.0; nb = 0
     ce = nn.CrossEntropyLoss(reduction="none")
     with torch.no_grad():
         for i in range(0, x.size(0), a.bs):
             xb = x[i:i + a.bs].to(dev); yb = y[i:i + a.bs].to(dev); mb = m[i:i + a.bs].to(dev)
-            log, z, s = net(xb)
+            log, z, s, o = net(xb)
             l = ce(log.reshape(-1, V), yb.reshape(-1)).view_as(yb)
             tot += (l * mb).sum().item(); ntok += mb.sum().item()
             corr += ((log.argmax(-1) == yb) & mb).sum().item()
-            rz += z.item(); rs += s.item(); nb += 1
+            rz += z.item(); rs += s.item(); ro += o.item(); nb += 1
     nats = tot / ntok
     return {"bpc": nats / math.log(2), "ppl": math.exp(min(nats, 20)),
-            "acc": corr / ntok, "rate_emitted": rz / nb, "rate_state": rs / nb}
+            "acc": corr / ntok, "rate_emitted": rz / nb, "rate_state": rs / nb,
+            "rate_out": ro / nb}
 
 
 def main():
@@ -234,7 +259,7 @@ def main():
         for i in range(0, xt.size(0), a.bs):
             idx = perm[i:i + a.bs]
             xb = xt[idx].to(dev); yb = yt[idx].to(dev); mb = mt[idx].to(dev)
-            log, z, s = net(xb)
+            log, z, s, o = net(xb)
             l = ce(log.reshape(-1, V), yb.reshape(-1)).view_as(yb)
             loss = (l * mb).sum() / mb.sum()
             if a.lam > 0 and ep >= 1 and a.variant != "digital":
@@ -243,17 +268,20 @@ def main():
         print(f"[{a.variant}] ep{ep+1}/{a.epochs} loss {last:.4f} "
               f"{time.time()-t0:.1f}s", flush=True)
     ev = evaluate(net, va, V, a, dev)
-    terms, tot, tot_cons = energy(a, V, ev["rate_emitted"], ev["rate_state"])
+    terms, tot, tot_cons = energy(a, V, ev["rate_emitted"], ev["rate_state"],
+                                  ev["rate_out"])
     res = {"variant": a.variant, "task": a.task, "seed": a.seed, "params": nparam,
            "vocab": V, "E": a.E, "H": a.H, "L": a.L, "epochs": a.epochs, "lr": a.lr,
            "lam": a.lam, "target": a.target if a.lam > 0 else None,
            "analog": {"theta": a.theta, "noise": a.noise, "bits": a.bits, "rail": a.rail}
            if a.variant == "analog" else None,
            "dig_reg": {"dig_noise": a.dig_noise, "dig_bits": a.dig_bits, "wd": a.wd},
+           "out_theta": a.out_theta,
            "bpc": round(ev["bpc"], 4), "ppl": round(ev["ppl"], 3),
            "acc": round(ev["acc"], 4),
            "rate_emitted": round(ev["rate_emitted"], 4),
            "rate_state": round(ev["rate_state"], 4),
+           "rate_out": round(ev["rate_out"], 4),
            "energy_pJ_per_token": round(tot, 3),
            "energy_pJ_per_token_conservative": round(tot_cons, 3),
            "energy_terms_pJ": terms}
