@@ -2774,3 +2774,41 @@ where the readout is only 3% anyway).
 optimism must be **narrowed in place** — "3-6x at a streaming shape" is now measured as *3.3x for an
 11-point accuracy loss*, not as a free win. Nothing Imam-facing may say the streaming shape rescues the
 route. Paper2 sec 8.4 / sec 9 gain this row as the *test* of the shape-law caveat they already carry.
+
+## energy-datapath: stream BUDGET CHECK — pre-registration (written BEFORE any cell ran)
+
+**Why:** the 2026-08-04 stream row's REFUTE verdict (no quality-matched pJ win at the
+streaming shape; best analog keeps 0.860 of reference accuracy) has exactly one live
+alternative explanation: BUDGET. The row ran at 10 ep / 20k of 60k train images and the
+reference sits at 0.788 where a small CNN reaches ~0.91 — and the copy row already taught
+us once (31580ac) that a budget-limited baseline misleads. This check is the only test
+that could move the verdict.
+
+**Row (driver `run_stream_budget.sh`, lock-dir queue, seed 0, ep30 / stream_n 60000 /
+stream_nval 5000, dense input, out suffix `_n60k_ep30`):** 5 cells —
+digital+dig_noise0.02 (the ep10 reference arm), plain digital (it BEAT the noise-reg arm
+by 1.1 pts at ep10 at this shape, so the proper reference at the long budget must be
+measured, not assumed), analog θ=0.15, analog θ=0.25, spikeout (the conservative-pricing
+engineering point at ep10).
+
+**Reference definition (fixed now):** the BETTER of {plain digital, noise-reg digital}
+at ep30/n60k — the harsher and honest comparator.
+
+**Criteria (must not be refitted):**
+- **CLOSE (the arm is dead for good):** both analog θ ∈ {0.15, 0.25} remain >5-point
+  accuracy deficits vs the reference at the long budget → the REFUTE verdict is
+  budget-robust; the "at our budget" qualifier drops from every artifact and the
+  no-pJ-win-at-any-shape sentence becomes unconditional (within tasks/shapes tested).
+- **REOPEN:** either analog θ comes within ≤5 points of the reference while keeping
+  r_z ≤ 0.65 → the ep10 REFUTE was budget-limited; then a full θ row + 3 seeds are owed
+  before any claim, and no Imam-facing artifact changes until those land.
+- **Directional note owed either way:** report whether the deficit NARROWS as budget
+  grows (ep10→ep30, 20k→60k), even if it stays >5 pts — a shrinking deficit with a
+  still-CLOSE verdict must be reported as "closed at this budget, deficit trending down",
+  not silently pooled into "closed".
+- **Most likely:** CLOSE — the analog deficit is a structural state degradation
+  (noise + 6-bit quantization + send-on-delta), not an optimization artifact; but the
+  datapath-degradation principle is 0-for-2 as a forecaster, which is why this runs.
+
+**Caveats fixed now:** n=1 seed (this is a budget probe, not a paper cell; 3 seeds owed
+at whatever budget survives); dense input (energy-axis-only corner untested); 45nm proxy.
