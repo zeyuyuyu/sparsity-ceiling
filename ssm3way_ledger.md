@@ -2607,3 +2607,97 @@ survives there.
 is fully specified above. Paper2 sec 8.4 needs the shape table folded in once the streaming
 result lands — until then its "model-shape property" caveat is accurate and no correction is
 owed. User decisions unchanged: send memo v3 to Imam; arXiv-submit paper 2.
+
+## 2026-08-04 ~05:15Z — STREAMING SHAPE, ARM 1: `--task stream` implemented, smoke-tested, and the theta-calibration + 4-variant row LAUNCHED (results pending)
+
+This opens the one data question left open by the shape law (`energy_shape.py`, d47511b): the small-output
+streaming shape (**V=10, V/H=0.039**) is where the analog/CIM route is *projected* to be worth 3-6x, and
+**no quality number has ever been measured there**. Everything below is implementation + pre-registration;
+no result is claimed.
+
+### What was implemented (`ssm3way.py`, `--task stream`)
+
+* **FashionMNIST as a 28-step ROW STREAM** — `x[n,28,28]` float rows in [0,1], one class label, 28 steps.
+  `data_stream()` reads the LOCAL copy (`/work/zeyuwang/hpc_rebuttal/data`, `download=False`); the local
+  NMNIST copy remains an unusable 3.1 MB partial and is not used. Train 20,000 / val 5,000 (`--stream_n`,
+  `--stream_nval`), `L` forced to 28.
+* **Loss and metrics at the LAST step only** (mask), so `acc` is classification accuracy (**chance 0.10**)
+  and `bpc` is the last-step CE in bits (chance log2(10) = 3.32).
+* Token embedding is replaced by a real-valued input projection `inp: Linear(28, E)` for this task only.
+  All four variants own identical tensors, exactly as on the other two tasks, so the row stays
+  parameter-matched (86,858 params at E=64, H=256, V=10).
+* **`--in_theta`: optional delta-encoded (event) INPUT stream** — per step, an input dim is *sent* only if
+  it moved more than `in_theta` since its last send; the network sees the held (last-sent) row. `r_in` is
+  **MEASURED and reported**, never assumed. When `in_theta > 0` the input path (`W_in` + the small `inp`
+  projection) is priced event-driven at `r_in`. **Applied to ALL variants**, i.e. priced symmetrically —
+  the lesson the readout row taught (an event input is equally available to a digital SSM, so any saving
+  it produces does not belong to the analog state).
+* **`in_theta` is 0 in THIS row** (dense input). The state-theta calibration is isolated first; the
+  event-input arm is a separate follow-up. Per the shape law the two are multiplicative at V=10
+  (3.16x -> 6.21x), so the arms must not be conflated.
+
+### Two accounting facts that must travel with any number from this task
+
+1. **The readout is priced PER STEP** (`readout_per_step: true` in every stream JSON): logits are computed
+   at all 28 steps even though the loss reads only the last. Real hardware doing last-step-only
+   classification would pay `W_out` once per sequence instead of 28 times, which would make `W_out`
+   negligible and *help* analog. The per-step price is therefore the **conservative** choice and is kept
+   for consistency with `energy_datapath.terms()` / `energy_shape.py`, which assume a per-step readout.
+2. `W_in_MAC` for this task includes the extra `28*E` input projection on top of `E*H`.
+
+### Verification done before launch (not assumed)
+
+* **Regression: all 212 existing charlm/copy cells re-priced through the patched `energy()` — zero keyset
+  differences, worst relative deviation 4.3e-3**, and that residual is an artifact of feeding the JSON's
+  4-decimal-rounded rates back in (it appears only on rate-dependent terms; ungated digital cells match
+  exactly). The patch leaves every previously published number intact. `in_theta`/`stream` defaults are
+  inert on the other tasks by construction.
+* **Smoke test** (digital, 1 epoch, 4,000 train seqs): acc **0.640** vs chance 0.10, runs clean.
+* **The shape law's central prediction is now visible in a real run JSON rather than a projection:** at
+  V=10 the digital cell's energy splits `W_mix` **75.7%** / `W_in` **21.0%** / `W_out` **3.0%** — the
+  recurrence is the dominant term and the readout is nearly free, the exact inversion of char-LM
+  (`W_out` 47-75%, recurrence 8%). This is arithmetic over the same proxy, so it is not new evidence for
+  the shape law; it confirms the task was built at the intended shape.
+
+### The row (9 cells, seed 0, 10 epochs, 20k train / 5k val, dense input)
+
+`run_stream_calib.sh <gpu>` — same lock-dir idempotent work queue as `run_shrinkH.sh` (atomic
+`mkdir stream_locks/<cell>`, skips any cell whose out JSON exists, releases the lock on failure).
+Outputs `ssm3way_runs/<name>_ep10.json`, per-cell logs in `stream_logs/`, markers in `stream_logs/calib.log`.
+
+| cell | role |
+|---|---|
+| `digital_stream_s0_reg_n0.02` | **the reference** — noise-regularized digital, the comparator every claim is made against |
+| `digital_stream_s0` | un-regularized digital, for the regularization delta at this shape |
+| `analog_stream_s0_th{0.15,0.25,0.5,1.0,2.0}` | theta calibration |
+| `spikeout_stream_s0` | continuous state + LIF output (SPikE-SSM-style) |
+| `spikestate_stream_s0` | floor control, state carried in spikes |
+
+**theta must exceed the ADC LSB** — `2*rail/2^bits = 2*4/64 = 0.125` — so the sweep starts at 0.15; any
+smaller threshold is inoperative (the 83e110a finding). theta is re-calibrated from scratch because it
+demonstrably does not transfer across tasks (char-LM's 1.0 collapsed analog to chance on copy).
+
+Launched 05:16Z, 8 workers on GPUs 0-7 (all 8 A800s verified fully idle, zero compute apps, and each
+launch behind a per-GPU uuid busy-guard). All 8 claimed distinct cells; `spikestate_stream_s0` is queued
+for the first worker to free.
+
+### CRITERIA — pre-registered in d47511b before implementation, restated here before any cell landed
+
+* **CONFIRM** = some theta keeps **>= 0.95 of the reference accuracy at r_z <= 0.65**. Then the verdict
+  becomes *"no pJ win at a language-model shape; a measured win at the streaming shape"* — the project's
+  first large measured pJ advantage.
+* **REFUTE** = accuracy deficit **> 5 points at every theta with r_z <= 0.8**. Then the no-pJ-win verdict
+  generalizes **beyond** model shape, which is the stronger negative and supersedes the shape-law
+  optimism.
+* **PARTIAL** = a graded tradeoff: report the accuracy-per-pJ curve, no headline flip.
+* **Most likely CONFIRM** — a *state* degradation is the cheap kind on a statistical workload (+0.160 bpc
+  char-LM vs ~+0.9 copy). **But this principle has already made one confidently wrong prediction** (it
+  predicted the event readout would be cheap on precise recall; it eliminated the task), so this is a
+  hypothesis, not a forecast.
+* **Distinct failure mode to watch:** `r_z` may simply fail to drop at any usable theta, as on copy. Then
+  **the calibration is the result** — the analog datapath would buy no event sparsity at this shape, and
+  the projected 3-6x would be unreachable for a reason unrelated to quality.
+
+**Caveats owed regardless of outcome:** n=1 seed (3 seeds before any paper use); dense input, so the
+projected 6.21x event-input corner is untested; energy remains the 45nm Horowitz proxy, not silicon; the
+per-step readout price is conservative and must be stated whenever a stream pJ ratio is quoted.

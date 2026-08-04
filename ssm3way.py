@@ -31,7 +31,10 @@ energy proxy (45nm Horowitz: dense MAC 4.6 pJ vs accumulate 0.9 pJ).  For (3) th
 graded analog event is priced BOTH ways -- optimistic (AC) and conservative (MAC) --
 because a graded event is not a 1-bit spike.
 
-Tasks: char-level WikiText-103 (local arrow) | synthetic copy (explicit memory load).
+Tasks: char-level WikiText-103 (local arrow) | synthetic copy (explicit memory load)
+       | FashionMNIST row-stream (28 steps x 28 px, V=10 -- the small-output shape
+         where the energy model projects a large analog advantage; optional
+         delta-encoded input via --in_theta, priced symmetrically across variants).
 """
 import json, math, time, argparse
 import torch, torch.nn as nn
@@ -47,7 +50,7 @@ VARIANTS = ("digital", "spikeout", "analog", "spikestate")
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--variant", choices=VARIANTS, required=True)
-    p.add_argument("--task", choices=("charlm", "copy"), default="charlm")
+    p.add_argument("--task", choices=("charlm", "copy", "stream"), default="charlm")
     p.add_argument("--gpu", type=int, default=0)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--E", type=int, default=64)
@@ -65,6 +68,13 @@ def get_args():
     p.add_argument("--chars", type=int, default=1_400_000)
     p.add_argument("--copy_k", type=int, default=16, help="copy-task token alphabet")
     p.add_argument("--copy_n", type=int, default=20000, help="copy-task sequences")
+    p.add_argument("--stream_n", type=int, default=20000, help="stream: train sequences")
+    p.add_argument("--stream_nval", type=int, default=5000, help="stream: val sequences")
+    p.add_argument("--in_theta", type=float, default=0.0,
+                   help="stream: delta-encoded INPUT send-on-delta threshold on the "
+                        "raw row.  0 = dense input (every prior cell unaffected). "
+                        "Applied to ALL variants, so the input event rate is priced "
+                        "symmetrically across arms.")
     p.add_argument("--dig_noise", type=float, default=0.0,
                    help="regularization control: state noise on the DIGITAL variant")
     p.add_argument("--dig_bits", type=int, default=0,
@@ -109,12 +119,40 @@ def data_copy(a):
     return (x[:cut], y[:cut], mask[:cut]), (x[cut:], y[cut:], mask[cut:]), V
 
 
+def data_stream(a):
+    """FashionMNIST as a 28-step ROW STREAM: x[n,28,28] float rows, one class label.
+
+    This is the small-output (V=10, V/H=0.039) shape where the energy model
+    projects a large analog advantage -- see energy_shape.py.  Loss/metrics are
+    taken at the LAST step only (mask), so `acc` is classification accuracy
+    (chance 0.10) and `bpc` is the last-step CE in bits (chance log2(10)=3.32).
+    """
+    import torchvision, torchvision.transforms as T
+    root = "/work/zeyuwang/hpc_rebuttal/data"
+    tf = T.ToTensor()                                     # [1,28,28] in [0,1]
+    tr = torchvision.datasets.FashionMNIST(root, train=True,  download=False, transform=tf)
+    te = torchvision.datasets.FashionMNIST(root, train=False, download=False, transform=tf)
+
+    def pack(ds, n):
+        n = min(n, len(ds))
+        X = ds.data[:n].float().div_(255.0)               # [n,28,28]
+        Y = ds.targets[:n].long()                        # [n]
+        y = Y.unsqueeze(1).expand(n, 28).contiguous()    # label at every step
+        mask = torch.zeros(n, 28, dtype=torch.bool); mask[:, -1] = True
+        return X, y, mask
+    return pack(tr, a.stream_n), pack(te, a.stream_nval), 10
+
+
 # ---------------------------------------------------------------- model
 class SSM(nn.Module):
     def __init__(self, V, E, H, variant, a):
         super().__init__()
         self.H, self.variant, self.cfg = H, variant, a
-        self.emb = nn.Embedding(V, E)
+        self.task = a.task
+        if self.task == "stream":
+            self.inp = nn.Linear(28, E)                  # real-valued row -> E
+        else:
+            self.emb = nn.Embedding(V, E)
         self.W_in = nn.Linear(E, H, bias=True)
         self.log_dt = nn.Parameter(torch.linspace(math.log(1e-3), math.log(1e-1), H))
         self.W_mix = nn.Linear(H, H, bias=False)
@@ -141,19 +179,33 @@ class SSM(nn.Module):
         return self._degrade(h, self.cfg.noise, self.cfg.bits)
 
     def forward(self, x):
-        B, L = x.shape
+        B, L = x.shape[0], x.shape[1]
         dev = x.device
         h = torch.zeros(B, self.H, device=dev)
         href = torch.zeros(B, self.H, device=dev)           # analog last-sent value
         mem = self.lif.init_leaky() if self.variant in ("spikeout", "spikestate") else None
         a = self.decay()
-        logits, z_act, s_act, o_act = [], [], [], []
+        logits, z_act, s_act, o_act, i_act = [], [], [], [], []
         ot = self.cfg.out_theta
         pr = getattr(self.cfg, "out_prand", 0.0)
+        it = getattr(self.cfg, "in_theta", 0.0)
+        xref = torch.zeros(B, x.shape[2], device=dev) if self.task == "stream" else None
         uref = torch.zeros(B, self.H, device=dev)       # readout last-sent value
         acc = self.W_out.bias.unsqueeze(0).expand(B, -1)  # running logits
         for t in range(L):
-            e = self.emb(x[:, t])
+            if self.task == "stream":
+                row = x[:, t, :]
+                if it > 0:                      # delta-encoded (event) input stream
+                    m_i = ((row - xref).abs() > it).float()
+                    xref = xref * (1 - m_i) + row * m_i
+                    i_act.append(m_i.mean())
+                    e = self.inp(xref)
+                else:
+                    i_act.append(torch.ones((), device=dev))
+                    e = self.inp(row)
+            else:
+                i_act.append(torch.ones((), device=dev))
+                e = self.emb(x[:, t])
             if self.variant == "spikestate":
                 cur = a * h + self.W_in(e) + self.W_mix(h)
                 h, mem = self.lif(cur, mem)
@@ -194,39 +246,46 @@ class SSM(nn.Module):
                 o_act.append(torch.ones((), device=dev))
                 logits.append(self.W_out(u))
         return (torch.stack(logits, 1), torch.stack(z_act).mean(),
-                torch.stack(s_act).mean(), torch.stack(o_act).mean())
+                torch.stack(s_act).mean(), torch.stack(o_act).mean(),
+                torch.stack(i_act).mean())
 
 
 # ---------------------------------------------------------------- energy
-def energy(a, V, r_z, r_s, r_o=1.0):
+def energy(a, V, r_z, r_s, r_o=1.0, r_in=1.0):
     """pJ per token, per-term, explicit about every assumption."""
     E, H = a.E, a.H
     win = E * H; wmix = H * H; wout = H * V
     terms = {}
+    # event (delta-encoded) input stream: only changed input dims drive W_in, and
+    # the same option is available to EVERY variant (priced symmetrically).
+    ev_in = getattr(a, "in_theta", 0.0) > 0 and a.task == "stream"
+    w_in_term = ("W_in_event_at_rin", (win + 28 * E) * r_in * E_AC) if ev_in else \
+                ("W_in_MAC", (win + (28 * E if a.task == "stream" else 0)) * E_MAC)
     # event-driven readout: only emitting units accumulate into W_out.
     ev_out = (a.out_theta > 0 or getattr(a, "out_prand", 0.0) > 0) \
              and a.variant != "spikestate"
     w_out_term = ("W_out_event_at_ro", wout * r_o * E_AC) if ev_out else \
                  ("W_out_MAC", wout * E_MAC)
     if a.variant == "digital":
-        terms = {"W_in_MAC": win * E_MAC, "state_MAC": H * E_MAC,
+        terms = {w_in_term[0]: w_in_term[1], "state_MAC": H * E_MAC,
                  "W_mix_MAC": wmix * E_MAC, w_out_term[0]: w_out_term[1]}
         tot = sum(terms.values()); tot_cons = tot
     elif a.variant == "spikeout":
-        terms = {"W_in_MAC": win * E_MAC, "state_MAC": H * E_MAC,
+        terms = {w_in_term[0]: w_in_term[1], "state_MAC": H * E_MAC,
                  "W_mix_AC_at_rz": wmix * r_z * E_AC, w_out_term[0]: w_out_term[1]}
         tot = sum(terms.values()); tot_cons = tot
     elif a.variant == "analog":
         # analog leak/integrate is physical -> priced at AC.  graded event priced
         # optimistically (AC) and conservatively (MAC); truth is in between.
-        terms = {"W_in_MAC": win * E_MAC, "state_analog_AC": H * E_AC,
+        terms = {w_in_term[0]: w_in_term[1], "state_analog_AC": H * E_AC,
                  "W_mix_event_at_rz": wmix * r_z * E_AC, w_out_term[0]: w_out_term[1]}
         tot = sum(terms.values())
-        # conservative: graded events priced as MACs, in the recurrence AND readout
-        tot_cons = (win * E_MAC + H * E_AC + wmix * r_z * E_MAC
+        # conservative: graded events priced as MACs, in the input, recurrence AND readout
+        w_in_cons = ((win + 28 * E) * r_in * E_MAC) if ev_in else w_in_term[1]
+        tot_cons = (w_in_cons + H * E_AC + wmix * r_z * E_MAC
                     + (wout * r_o * E_MAC if ev_out else wout * E_MAC))
     else:                                                    # spikestate
-        terms = {"W_in_MAC": win * E_MAC, "state_MAC": H * E_MAC,
+        terms = {w_in_term[0]: w_in_term[1], "state_MAC": H * E_MAC,
                  "W_mix_AC_at_rs": wmix * r_s * E_AC, "W_out_AC_at_rs": wout * r_s * E_AC}
         tot = sum(terms.values()); tot_cons = tot
     return {k: round(v * 1e12, 4) for k, v in terms.items()}, tot * 1e12, tot_cons * 1e12
@@ -235,27 +294,34 @@ def energy(a, V, r_z, r_s, r_o=1.0):
 # ---------------------------------------------------------------- train / eval
 def evaluate(net, va, V, a, dev):
     x, y, m = va
-    net.eval(); tot = 0.0; ntok = 0; corr = 0; rz = 0.0; rs = 0.0; ro = 0.0; nb = 0
+    net.eval(); tot = 0.0; ntok = 0; corr = 0; rz = 0.0; rs = 0.0; ro = 0.0
+    ri = 0.0; nb = 0
     ce = nn.CrossEntropyLoss(reduction="none")
     with torch.no_grad():
         for i in range(0, x.size(0), a.bs):
             xb = x[i:i + a.bs].to(dev); yb = y[i:i + a.bs].to(dev); mb = m[i:i + a.bs].to(dev)
-            log, z, s, o = net(xb)
+            log, z, s, o, ii = net(xb)
             l = ce(log.reshape(-1, V), yb.reshape(-1)).view_as(yb)
             tot += (l * mb).sum().item(); ntok += mb.sum().item()
             corr += ((log.argmax(-1) == yb) & mb).sum().item()
-            rz += z.item(); rs += s.item(); ro += o.item(); nb += 1
+            rz += z.item(); rs += s.item(); ro += o.item(); ri += ii.item(); nb += 1
     nats = tot / ntok
     return {"bpc": nats / math.log(2), "ppl": math.exp(min(nats, 20)),
             "acc": corr / ntok, "rate_emitted": rz / nb, "rate_state": rs / nb,
-            "rate_out": ro / nb}
+            "rate_out": ro / nb, "rate_in": ri / nb}
 
 
 def main():
     a = get_args()
     torch.manual_seed(a.seed)
     dev = torch.device(f"cuda:{a.gpu}" if torch.cuda.is_available() else "cpu")
-    tr, va, V = data_charlm(a) if a.task == "charlm" else data_copy(a)
+    if a.task == "charlm":
+        tr, va, V = data_charlm(a)
+    elif a.task == "copy":
+        tr, va, V = data_copy(a)
+    else:
+        a.L = 28                                  # 28 rows = 28 stream steps
+        tr, va, V = data_stream(a)
     net = SSM(V, a.E, a.H, a.variant, a).to(dev)
     nparam = sum(p.numel() for p in net.parameters())
     print(f"[{a.variant}/{a.task}] dev {dev} vocab {V} params {nparam:,} "
@@ -268,7 +334,7 @@ def main():
         for i in range(0, xt.size(0), a.bs):
             idx = perm[i:i + a.bs]
             xb = xt[idx].to(dev); yb = yt[idx].to(dev); mb = mt[idx].to(dev)
-            log, z, s, o = net(xb)
+            log, z, s, o, _ = net(xb)
             l = ce(log.reshape(-1, V), yb.reshape(-1)).view_as(yb)
             loss = (l * mb).sum() / mb.sum()
             if a.lam > 0 and ep >= 1 and a.variant != "digital":
@@ -278,7 +344,7 @@ def main():
               f"{time.time()-t0:.1f}s", flush=True)
     ev = evaluate(net, va, V, a, dev)
     terms, tot, tot_cons = energy(a, V, ev["rate_emitted"], ev["rate_state"],
-                                  ev["rate_out"])
+                                  ev["rate_out"], ev["rate_in"])
     res = {"variant": a.variant, "task": a.task, "seed": a.seed, "params": nparam,
            "vocab": V, "E": a.E, "H": a.H, "L": a.L, "epochs": a.epochs, "lr": a.lr,
            "lam": a.lam, "target": a.target if a.lam > 0 else None,
@@ -286,11 +352,14 @@ def main():
            if a.variant == "analog" else None,
            "dig_reg": {"dig_noise": a.dig_noise, "dig_bits": a.dig_bits, "wd": a.wd},
            "out_theta": a.out_theta, "out_prand": a.out_prand,
+           "in_theta": a.in_theta,
+           "readout_per_step": True,
            "bpc": round(ev["bpc"], 4), "ppl": round(ev["ppl"], 3),
            "acc": round(ev["acc"], 4),
            "rate_emitted": round(ev["rate_emitted"], 4),
            "rate_state": round(ev["rate_state"], 4),
            "rate_out": round(ev["rate_out"], 4),
+           "rate_in": round(ev["rate_in"], 4),
            "energy_pJ_per_token": round(tot, 3),
            "energy_pJ_per_token_conservative": round(tot_cons, 3),
            "energy_terms_pJ": terms}
