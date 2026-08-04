@@ -2881,3 +2881,15 @@ All numbers copied from ledger entries d47511b (shape sweep), 3033631/c18c724 (s
 **memo v3:** Addendum 2026-08-04 inserted directly after the 2026-08-03 one — shape law, streaming + budget negative, the conservative-pricing point in spikeout's favour, the principle's 0-for-2 forecast record, and the unqualified bottom line, with caveats inline. Memo remains send-ready; NOTHING Imam-facing claims the streaming shape rescues the route.
 
 **REMAINING:** the talk deck does NOT yet carry the shape-law/streaming narrowing (its "energy is not where the mechanisms are" band is still unqualified language-shape-only) — next tick's candidate via `talk/patch_deck*.py` + LOCAL pptx→pdf. User decisions unchanged: send memo v3 (never auto-send); arXiv-submit paper 2.
+
+## 2026-08-04 ~07:15Z — talk deck narrowed to the shape-law/streaming verdict (patch_deck3.py); every Imam-facing artifact now current
+
+Zero-GPU tick (all 8 A800s held by another user's job; nothing launched). The last Imam-facing artifact still carrying the language-shape-only stranded-readout framing was the talk deck. Three anchored edits via `talk/patch_deck3.py` (same discipline as patch_deck2.py: asserts current text per shape id, aborts on drift, no partial application; all numbers copied from ledger entries d47511b / c18c724 / 0924aad, none re-derived):
+
+- **Slide 07 band 05 title:** "The energy is not where the mechanisms are" → **"No quality-matched pJ win at any shape tested"**. The old title is false as a general statement — at V/H=0.04 the recurrence IS where the mechanisms are; there the energy is recoverable and quality is what fails.
+- **Slide 07 band 05 body:** LM shape (readout = 75% of analog's pJ/token, recurrence 8%; gating it costs ~+1.0 bpc and all of copy's margin, 3 seeds) + streaming shape (V/H=0.04: recurrence dominates, 3.3× recoverable — but −10…−19 pts, budget-robust) + converters ≤0.58% (worst sweep corner; supersedes the char-LM-only 0.00–0.33% on the slide).
+- **Slide 08 direction 01 body:** no longer implies the streaming shape is untested — now "done in simulation at both shapes … streaming — 3.3× is recoverable but costs 10–19 pts, budget-robust"; the 45nm-proxy caveat and the "02 first, not more simulation" recommendation kept.
+
+Verified by the rasterize-the-built-PDF step (pptx→pdf via LibreOffice LOCAL-only, both edited slides rendered and inspected): no overlap, no overflow, all other bands untouched. Backup of the pre-patch deck at `/tmp/deck_pre_patch3.pptx` (server). Speaker notes gained EDIT LIST #3 + a speaker line that delivers the result as a negative.
+
+**State after this entry: memo v3, paper2 (+PDF), deck (+PDF) and speaker notes ALL carry the unqualified verdict — no quality-matched pJ win at any model shape tested, at any training budget tested — and the datapath-degradation principle is stated as post-hoc everywhere. No open data question; no open writeup item. Remaining = user decisions (send memo v3; arXiv-submit paper 2).**

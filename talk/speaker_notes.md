@@ -257,3 +257,13 @@ output."* If asked why not just gate smarter: the random-hold ablation shows sta
 fatal and send-on-delta is already the better selection rule — no gating rule reopens this.
 
 Do not quote a pJ figure without the quality it purchased, and never call the proxy a measurement.
+
+---
+
+PPTX EDIT LIST #3 (APPLIED 2026-08-04, patch_deck3.py — shape-law/streaming narrowing):
+1. Slide 07 band 05 title: "The energy is not where the mechanisms are" → "No quality-matched pJ win at any shape tested" (the old title is false at V/H=0.04, where the recurrence IS where the mechanisms are — energy is recoverable there; quality is what fails).
+2. Slide 07 band 05 body → LM shape (readout 75% of analog's pJ/token, recurrence 8%; gating it costs ~+1.0 bpc and all of copy's margin, 3 seeds) + streaming shape (V/H=0.04: recurrence dominates, 3.3× recoverable — but −10…−19 pts, budget-robust) + converters ≤0.58% (worst sweep corner; supersedes the char-LM-only 0.00–0.33%).
+3. Slide 08 direction 01 body → streaming no longer implied untested: "done in simulation at both shapes … streaming — 3.3× is recoverable but costs 10–19 pts, budget-robust"; 45nm-proxy caveat and the "02 first" recommendation kept.
+
+SPEAKER LINE (slide 07, band 05) — deliver as a negative, in this order:
+"We then asked whether the energy verdict was just a property of the language-model shape — and it half was: at a streaming shape the recurrence really is the biggest term, and the 3.3× is real and measured. But quality never survives: the analog state costs ten to nineteen points of accuracy there, and tripling the training budget does not move that gap. So the honest one-liner is: no quality-matched energy win at any model shape we tested, at any budget we tested. And note our own degradation principle predicted the opposite — that is twice it has been wrong as a forecast; it orders results after the fact, it does not predict them."
