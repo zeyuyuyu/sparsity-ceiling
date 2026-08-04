@@ -1,0 +1,39 @@
+{
+  "variant": "spikestate",
+  "task": "stream",
+  "seed": 0,
+  "params": 86858,
+  "vocab": 10,
+  "E": 64,
+  "H": 256,
+  "L": 28,
+  "epochs": 10,
+  "lr": 0.002,
+  "lam": 0.0,
+  "target": null,
+  "analog": null,
+  "dig_reg": {
+    "dig_noise": 0.0,
+    "dig_bits": 0,
+    "wd": 0.0
+  },
+  "out_theta": 0.0,
+  "out_prand": 0.0,
+  "in_theta": 0.0,
+  "readout_per_step": true,
+  "bpc": 1.6985,
+  "ppl": 3.246,
+  "acc": 0.5298,
+  "rate_emitted": 0.405,
+  "rate_state": 0.405,
+  "rate_out": 0.405,
+  "rate_in": 1.0,
+  "energy_pJ_per_token": 109609.549,
+  "energy_pJ_per_token_conservative": 109609.549,
+  "energy_terms_pJ": {
+    "W_in_MAC": 83609.6,
+    "state_MAC": 1177.6,
+    "W_mix_AC_at_rs": 23889.1779,
+    "W_out_AC_at_rs": 933.171
+  }
+}

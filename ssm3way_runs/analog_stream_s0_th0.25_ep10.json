@@ -1,0 +1,44 @@
+{
+  "variant": "analog",
+  "task": "stream",
+  "seed": 0,
+  "params": 86858,
+  "vocab": 10,
+  "E": 64,
+  "H": 256,
+  "L": 28,
+  "epochs": 10,
+  "lr": 0.002,
+  "lam": 0.0,
+  "target": null,
+  "analog": {
+    "theta": 0.25,
+    "noise": 0.02,
+    "bits": 6,
+    "rail": 4.0
+  },
+  "dig_reg": {
+    "dig_noise": 0.0,
+    "dig_bits": 0,
+    "wd": 0.0
+  },
+  "out_theta": 0.0,
+  "out_prand": 0.0,
+  "in_theta": 0.0,
+  "readout_per_step": true,
+  "bpc": 1.7777,
+  "ppl": 3.429,
+  "acc": 0.5976,
+  "rate_emitted": 0.3311,
+  "rate_state": 0.9438,
+  "rate_out": 1.0,
+  "rate_in": 1.0,
+  "energy_pJ_per_token": 115143.236,
+  "energy_pJ_per_token_conservative": 195421.872,
+  "energy_terms_pJ": {
+    "W_in_MAC": 83609.6,
+    "state_analog_AC": 230.4,
+    "W_mix_event_at_rz": 19527.2358,
+    "W_out_MAC": 11776.0
+  }
+}

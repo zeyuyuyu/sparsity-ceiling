@@ -2701,3 +2701,76 @@ for the first worker to free.
 **Caveats owed regardless of outcome:** n=1 seed (3 seeds before any paper use); dense input, so the
 projected 6.21x event-input corner is untested; energy remains the 45nm Horowitz proxy, not silicon; the
 per-step readout price is conservative and must be stated whenever a stream pJ ratio is quoted.
+
+### 2026-08-04 ~05:35Z — the streaming row COMPLETED IN THE SAME TICK (9/9 cells, ~16 s/epoch) and the PRE-REGISTERED **REFUTE** BRANCH IS MET: the projected pJ win is real and measured, but quality does not survive it
+
+Table via `agg_stream.py 10` (new, groups by variant/theta/dig_noise/in_theta/out_theta/epochs so budgets
+and gate settings are never pooled). FashionMNIST row-stream, V=10, seed 0, 10 ep, 20k train / 5k val,
+dense input, chance acc **0.10**. Reference = noise-regularized digital, **acc 0.7878, 398,029 pJ/token**.
+
+| cell | acc | margin kept | bpc | r_z | pJ/tok | pJ cons. | x vs ref |
+|---|---|---|---|---|---|---|---|
+| digital (plain) | 0.7990 | 1.016 | 0.801 | 1.000 | 398,029 | — | 1.00 |
+| **digital +n0.02 (reference)** | **0.7878** | 1.000 | 0.852 | 1.000 | 398,029 | — | 1.00 |
+| analog th=0.15 | **0.6774** | 0.839 | 1.440 | 0.428 | 120,883 | 224,757 | **3.29** (cons. 1.77) |
+| analog th=0.25 | 0.5976 | 0.723 | 1.778 | 0.331 | 115,143 | 195,422 | 3.46 (cons. 2.04) |
+| analog th=0.5 | 0.5312 | 0.627 | 2.067 | 0.214 | 108,254 | 160,212 | 3.68 (cons. 2.48) |
+| analog th=1.0 | 0.3652 | 0.386 | 2.576 | 0.114 | 102,312 | 129,840 | 3.89 (cons. 3.07) |
+| analog th=2.0 | 0.2044 | 0.152 | 3.109 | 0.047 | 98,356 | 109,620 | 4.05 (cons. 3.63) |
+| spikeout | 0.6486 | 0.798 | 1.361 | 0.386 | 119,345 | — | 3.34 |
+| spikestate | 0.5298 | 0.625 | 1.699 | 0.405 | 109,610 | — | 3.63 |
+
+**CRITERIA, applied mechanically by the script (not by eye):** CONFIRM (some theta keeping >= 0.95 of the
+reference accuracy at r_z <= 0.65) **NOT MET** — the best cell, theta=0.15, keeps only **0.860** of the
+reference accuracy. REFUTE (> 5-point deficit at *every* theta with r_z <= 0.8) **MET** — deficits are
+**11.0 / 19.0 / 25.7 / 42.3 / 58.3 points** across the five thetas, all five usable cells. Per the
+pre-registered sentence: **the no-pJ-win verdict generalizes beyond model shape.** There is no
+quality-matched pJ win at ANY shape we have tested.
+
+**What DID hold: the energy arithmetic.** `energy_shape.py` projected **3.16x** at V=10 for the char-LM
+operating point (r_z=0.6122); the measured cell at r_z=0.428 comes in at **3.29x** (optimistic pricing).
+So the shape law's pJ side is confirmed out of sample — the 75%/8% split really does inverse at V/H=0.039
+(measured digital split at this shape: `W_mix` **75.7%**, `W_in` 21.0%, `W_out` **3.0%**). **What failed is
+the quality side, which had never been measured.**
+
+**The failure mode we watched for did NOT occur, which makes the negative cleaner.** `r_z` falls smoothly
+0.428 -> 0.047 with theta, unlike copy where the state gate bought no sparsity at any usable threshold. The
+analog datapath *does* deliver event sparsity at this shape; it charges 11 accuracy points for the first
+2.3x of it. This is a graded tradeoff, not a collapse — so the accuracy-per-pJ curve above is the result.
+
+**Three further readings.**
+1. **The ~3.3-4.0x is shape-determined, not mechanism-determined.** All three neuromorphic variants land in
+   a narrow band (analog 3.29, spikeout 3.34, spikestate 3.63) because `W_mix` dominates at V=10 and every
+   mechanism gets event pricing on it. Same lesson as the readout row in mirror image: the saving belongs
+   to the *shape*, not to the analog state.
+2. **Analog IS the best non-digital variant here** (0.6774 at 3.29x vs spikeout 0.6486 at 3.34x, spikestate
+   0.5298 at 3.63x) — the char-LM ordering reproduces at the streaming shape and the copy inversion does
+   not, consistent with the workload dichotomy (a statistical/perception workload tolerates a lossy state).
+   But the margin over spikeout is small (2.9 accuracy points), and **spikeout's 3.34x carries no
+   graded-event ambiguity** (true 1-bit spikes), whereas analog's 3.29x becomes **1.77x** under conservative
+   pricing. Priced conservatively, spikeout is the better engineering point at this shape.
+3. **The noise-regularization gift does not appear at this shape:** plain digital 0.7990 > noise-regularized
+   0.7878, i.e. state noise is worth **-1.1 points** here versus **-0.309 bpc (a benefit)** on char-LM.
+   Using plain digital as the reference makes analog's deficit slightly worse (12.2 points). The char-LM
+   retraction's mechanism therefore does not generalize either.
+
+**The datapath-degradation principle has now mispredicted TWICE, both times confidently.** It predicted
+the event readout would be cheap on precise recall (it eliminated the task) and it predicted a state
+degradation would be cheap on this statistical workload (11-point deficit). Its record is: correct as a
+*post-hoc* ordering of already-measured degradations, wrong both times it was used as a forecast. That
+must be stated wherever the principle appears — it is a summary, not a predictive law.
+
+**Caveats owed, and one live alternative explanation.** n=1 seed (effect sizes 11-58 points dwarf the seed
+noise seen elsewhere, ~0.3-1.5 points, but 3 seeds are owed before paper use). **Budget:** 10 epochs /
+20k of 60k train images, reference at 0.788 while a small CNN reaches ~0.91 — so this reference is not at
+its ceiling, and the copy row taught us that a budget-limited baseline can mislead. It is possible the
+deficit narrows at a longer budget; that is the one cheap check that could move the verdict, and it is
+NOT yet run. Dense input (in_theta=0), so the projected multiplicative 6.21x event-input corner is still
+untested — but note it can only improve the *energy* axis, and the axis that failed is quality.
+Energy remains the 45nm Horowitz proxy; the readout is priced per step (conservative at this shape,
+where the readout is only 3% anyway).
+
+**Effect on existing artifacts:** nothing published becomes wrong, but the 2026-08-04 shape-law entry's
+optimism must be **narrowed in place** — "3-6x at a streaming shape" is now measured as *3.3x for an
+11-point accuracy loss*, not as a free win. Nothing Imam-facing may say the streaming shape rescues the
+route. Paper2 sec 8.4 / sec 9 gain this row as the *test* of the shape-law caveat they already carry.
