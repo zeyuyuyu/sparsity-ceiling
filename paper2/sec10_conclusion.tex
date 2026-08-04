@@ -20,11 +20,17 @@ proxy-energy reduction for a $+0.160$ bpc (5.3\%) quality cost against a properl
 regularized digital baseline. Precise-recall workloads need an exact state and tolerate a
 spiked output --- and carrying the state itself in spikes is not a degraded option there
 but a non-option, landing at exactly chance at $M{=}32$ and $M{=}64$ while being the
-cheapest cell in the table.
+cheapest cell in the table. The energy side, meanwhile, obeys a shape law: the recoverable
+proxy energy is set by the readout-to-state ratio $V/H$, and across every shape and budget
+tested the recoverable energy and the tolerable quality loss never co-occur --- there is
+no quality-matched pJ win in this datapath family at any shape we measured
+(\S\ref{sec:hardware-shape}).
 
-For a designer, the principle converts into a rule that can be applied before any
-simulation: identify which side of the datapath --- recurrent state or emitted output ---
-the workload's loss actually depends on, and spend the exactness budget there. The
+For a designer, the principle is an organizing rule, not a forecasting one: used
+predictively on two settings it had not seen, it failed both times
+(\S\ref{sec:principle-against}), so the honest form of the rule is to \emph{measure} which
+side of the datapath --- recurrent state or emitted output --- the workload's loss
+actually depends on, and spend the exactness budget there. The
 co-design constraints that come with the analog route are equally concrete: the ADC step,
 not the send-on-delta threshold, floors the event rate, so event sparsity is purchased
 with converter bits rather than a free algorithmic knob, and the threshold does not

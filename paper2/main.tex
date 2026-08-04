@@ -5,13 +5,19 @@
 % (ssm3way_ledger.md): a134f05 / bb79f7f (char-LM + regularization control and retraction),
 % a8e7a7c / 8e74f48 / 5bb7bcc / 8d050cb / 48510c8 (copy margins vs the noise-regularized
 % reference, quantizer contrast), 471f113 (final shrink-H bound table), 159e341 (why raising
-% the memory load cannot test the bound).
+% the memory load cannot test the bound), c8b596f / a9ff715 / 73c99e6 / 60d627c / db7c13b
+% (energy decomposition + stranded readout, 3-seed), d47511b / c18c724 / 0924aad (shape law,
+% streaming-shape quality negative, budget robustness).
 %
 % CLAIMS DISCIPLINE — forbidden anywhere in this paper, per the skeleton's claims ledger:
 %   "analog beats digital" (retracted, bb79f7f); "the bound is confirmed" / any contrapositive
 %   claim (retracted, cef2101); any "190x" floor swing (corrected to 12x, 471f113); any copy
 %   margin quoted without the regularized-reference correction; any pJ figure presented as a
-%   silicon measurement rather than a 45nm proxy.
+%   silicon measurement rather than a 45nm proxy; "converters are unpriced" (falsified by the
+%   c8b596f sweep — they are priced under the proxy at 0.00–0.33%); any "3–6x at a streaming
+%   shape" presented as a result rather than a projection whose quality side was REFUTED
+%   (c18c724/0924aad); the datapath-degradation principle presented as predictive (it
+%   mispredicted twice — post-hoc ordering only).
 %
 % Build: pdflatex main && bibtex main && pdflatex main && pdflatex main
 % (LaTeX is not installed on the A800 box; build locally.)
@@ -57,7 +63,7 @@ that is lossy by construction. We compare all three, plus a spiking-state contro
 \emph{matched parameters} (identical tensors; only the position of the nonlinearity moves) and at
 \emph{matched communication rate}, on one statistical workload (character-level language
 modelling) and one precise-recall workload (synthetic copy at three memory loads), with three
-seeds per cell.
+seeds per cell, plus a pre-registered streaming-perception probe at a small-output shape.
 
 Neither neuromorphic route dominates, and the ranking \emph{inverts} between the two tasks. On
 char-LM the analog-state datapath is the best non-digital variant and buys a $1.60\times$ cut in
@@ -73,15 +79,25 @@ being the cheapest cell in the study --- an energy number that purchased nothing
 We organize both orderings under one claim: a neuromorphic variant is cheap exactly when it
 degrades the part of the datapath the task does not depend on. Its sharpest test is
 out-of-sample and post-hoc: the same $6$-bit state quantizer costs $-0.002$~bpc on char-LM and
-$+0.369$/$+0.385$~bpc on copy at two memory loads. We also report a negative on the theory side.
+$+0.369$/$+0.385$~bpc on copy at two memory loads. Used as a forecast on two settings it had
+not seen, the claim mispredicts both, so we state it as a post-hoc ordering, not a predictive
+law. On the energy side, decomposing our own proxy shows that at a language-model shape the
+readout carries $75\%$ of the analog variant's energy while the recurrence --- the only term
+any mechanism here sparsifies --- carries $8\%$, and the readout share resists every gating
+mechanism tested: hold-based gating is quality-fatal on both workloads, and spike-based
+gating recomputes every MAC. At the small-output shape where the recurrence does dominate, a
+measured $3.3\times$ proxy saving comes with a budget-robust $10$--$19$-point accuracy
+deficit --- within the tested space there is no quality-matched energy win at any model
+shape. We also report a negative on the theory side.
 A firing-floor bound from prior work, $\rho \ge H_b^{-1}(M\log_2 K / H)$, is tested by shrinking
 the recurrent width so the predicted floor swings $12\times$ on a task the reference model still
 learns; measured spiking-state activity \emph{falls} ($0.496 \to 0.250$) as the floor rises, and
 accuracy \emph{improves} as predicted capacity shrinks, so the observed activity is
 width-determined rather than information-determined and the bound is not empirically validated in
 either direction at this scale. All energy figures are $45$~nm operation-count proxies from
-simulation, not silicon measurements, and the analog route's storage element and converter are
-unpriced.
+simulation, not silicon measurements; the analog route's storage element and converter are
+priced only under a supplementary sweep of the same proxy ($0.00$--$0.33\%$ of the total at
+this width), never on a device.
 \end{abstract}
 \bigskip
 \end{@twocolumnfalse}

@@ -96,3 +96,18 @@ trend across loads runs \emph{toward} the char-LM value, so ``the regularizer he
 statistical task more'' is at best a weak supporting line and we do not lean on it. Second,
 the principle has been tested out of sample exactly once (the quantizer contrast), on two
 tasks and one architecture family; Section~\ref{sec:limitations} states the scale caveats.
+
+Third --- and decisive for how the principle may be used --- when employed as a
+\emph{forecast} on settings it had not seen, the principle is zero for two. It predicted
+that an event-driven readout, being an output degradation, would be cheap on the
+precise-recall task, where output-spiking was already the best variant; the gate did not
+degrade recall, it eliminated it (Section~\ref{sec:hardware-stranded}). It then predicted
+that a lossy analog state, being a state degradation, would be cheap on a streaming
+statistical perception task; the measured deficit is $10$--$19$ accuracy points at every
+threshold, robust to a $3\times$ budget increase (Section~\ref{sec:hardware-shape}). The
+principle correctly organizes every degradation this paper measured, and both failed
+forecasts have identifiable causes in hindsight (staleness is not the LIF degradation
+axis; ``statistical'' is too coarse a workload class) --- but hindsight is the point. We
+therefore state it throughout as a post-hoc ordering of measured degradations, not a
+predictive law, and the designer's rule it supports is to \emph{measure} which side of
+the datapath the workload's loss depends on, not to predict it.

@@ -69,7 +69,9 @@ lossy state; precise recall needs an exact \emph{state} and tolerates a binarize
 this out of sample with a degradation neither task was designed around: the same 6-bit state
 quantizer costs $-0.002$~bpc on char-LM (nothing) and $+0.369$/$+0.385$~bpc on copy at $M{=}16$
 and $M{=}32$. That test is post-hoc identified, and we label it as such throughout
-(\S\ref{sec:principle-quantizer}).
+(\S\ref{sec:principle-quantizer}). Used as a \emph{forecast} on two settings it had not
+seen, the principle mispredicted both (\S\ref{sec:principle-against}); it is a post-hoc
+ordering of measured degradations, not a predictive law.
 
 \paragraph{We report our own retraction.} An intermediate version of the char-LM result had the
 analog-state SSM \emph{beating} the digital baseline by $0.149\pm0.014$~bpc. A control showed that
@@ -109,9 +111,10 @@ on the bound.
   \item \textbf{Two-task, matched-communication-rate evidence that the variant ranking inverts}
     across workloads, at three seeds on both tasks and three memory loads on the recall task
     (\S\ref{sec:charlm}, \S\ref{sec:copy}).
-  \item \textbf{The datapath-degradation principle}, which predicts both orderings where state
-    fidelity alone does not, with the quantizer contrast as an out-of-sample (post-hoc
-    identified) test (\S\ref{sec:principle}).
+  \item \textbf{The datapath-degradation principle}, which orders both measured rankings where
+    state fidelity alone does not, with the quantizer contrast as an out-of-sample (post-hoc
+    identified) test --- stated as a post-hoc ordering, since as a forecast it mispredicted
+    twice (\S\ref{sec:principle}).
   \item \textbf{Two honest negatives and a co-design constraint}: the firing-floor bound is not
     empirically validated by this architecture at this scale in either direction
     (\S\ref{sec:bound}); the ``analog beats digital'' reading is retracted after a regularization
@@ -122,8 +125,9 @@ on the bound.
 \end{enumerate}
 
 \paragraph{Scope.} Everything here is simulation at small scale --- at most $1.7\times10^5$
-parameters, short training schedules, two tasks --- and every energy number is a 45\,nm
+parameters, short training schedules, three tasks --- and every energy number is a 45\,nm
 operation-count proxy, not a measurement on silicon. The analog storage element and its converter,
-which are real area and power costs, are not priced by that proxy at all. We state these limits
+which are real area and power costs, are priced only under a supplementary sweep of the same
+proxy (\S\ref{sec:hardware-stranded}), never on a device. We state these limits
 where they bite rather than only in \S\ref{sec:limitations}, because they bound what the
 recommendation in \S\ref{sec:hardware} can support.

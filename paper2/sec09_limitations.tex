@@ -35,7 +35,7 @@ tradeoff could move in either direction at scale. Absolute task quality is far f
 state of the art by construction (a one-layer diagonal SSM), which is the price of the
 parameter-matched protocol.
 
-\paragraph{Two tasks, one out-of-sample test.}
+\paragraph{Three tasks, and a principle that orders but does not forecast.}
 The ranking inversion rests on one statistical task (char-level WikiText) and one
 precise-recall task (synthetic copy). The datapath-degradation principle was tested
 out of sample exactly once --- the quantizer contrast of
@@ -43,9 +43,14 @@ Section~\ref{sec:principle-quantizer}, $-0.002$ bpc on char-LM versus $+0.369$/$
 bpc on copy at $M{=}16$/$32$ --- and that test is post hoc: the pre-registered arm
 turned out to be a training-time-only regularizer and could not test the principle as
 designed. The genuinely pre-registered element is the $M{=}32$ floor
-($\geq{+}0.37$ bpc, met). A designed, pre-registered test on a third workload family
-(e.g.\ associative recall with distractors, or a streaming perception task) is the
-obvious strengthening experiment.
+($\geq{+}0.37$ bpc, met). The strengthening experiment we called for --- a
+pre-registered test on a third workload family --- has since been run (streaming
+perception, Section~\ref{sec:hardware-shape}), and it \emph{weakened} the principle's
+predictive reading: the principle forecast that a state degradation would be cheap
+there, and it was not ($10$--$19$ points, budget-robust). Together with the failed
+event-readout forecast (Section~\ref{sec:hardware-stranded}), the principle stands as a
+post-hoc ordering of the degradations measured here, not a predictive law
+(Section~\ref{sec:principle-against}).
 
 \paragraph{The regularized reference is not an exhaustively tuned one.}
 All corrected copy margins are quoted against a digital baseline given training-time
@@ -75,7 +80,12 @@ limits. The attribution of the copy collapse to staleness is an inference from t
 char-LM ablation --- the random-hold arm was not run on copy. The cited operating points
 are three-seed, but the intermediate thresholds and hold rates between them remain
 single-seed, and the low-rate delta-versus-random comparison exists on the digital arm
-only. And the $1.74\times$ free-recurrence ceiling is a property of this model's shape:
-the readout dominates because $H \times V$ exceeds $H^{2}$ at this vocabulary, so the
-decomposition must be redone before applying the conclusion to a differently proportioned
-SSM (at $H \gg V$ the recurrence, not the readout, would carry the energy).
+only. The $1.74\times$ free-recurrence ceiling is a property of this model's shape ---
+a caveat that is now measured rather than hypothetical: Section~\ref{sec:hardware-shape}
+sweeps the decomposition over $V/H$ and tests the small-output shape where the recurrence
+does dominate. The energy there is real ($3.29\times$ measured against a $3.16\times$
+projection) and the quality is not ($10$--$19$ accuracy points at every threshold,
+budget-robust). The streaming cells carry their own limits: single-seed, dense input
+(the projected $6.21\times$ event-input corner is untested, though it improves only the
+energy axis, which is not the axis that failed), and the same 45\,nm proxy as everything
+else.

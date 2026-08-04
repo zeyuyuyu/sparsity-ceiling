@@ -5,7 +5,9 @@
 % 159e341 (copy energy columns), 5bb7bcc / 8d050cb / 48510c8 (margins vs regularized reference),
 % c8b596f / a9ff715 (energy decomposition, free-recurrence ceiling, converter/storage sweep),
 % 73c99e6 (copy event-readout refutation), 60d627c (outrand attribution), db7c13b (3-seed
-% confirmation of all gated cells — the n=1 caveat is retired for the cited claims).
+% confirmation of all gated cells — the n=1 caveat is retired for the cited claims),
+% d47511b (shape law sweep), 3033631/c18c724 (streaming row, pre-registered REFUTE),
+% 39a6873/0924aad (budget check, pre-registered CLOSE — deficit flat ep10->ep30).
 % CLAIMS DISCIPLINE — forbidden in this section, per the skeleton's claims ledger:
 %   "analog beats digital" (retracted); any pJ number presented as a silicon measurement
 %   (all energy figures are the 45nm Horowitz MAC/AC proxy); quoting copy margins vs the
@@ -25,13 +27,15 @@ co-design constraints bind once a route is chosen.
 No route wins both tasks, and the ordering inversion of Section~\ref{sec:copy} is stable at
 three seeds on both sides, so the recommendation cannot be collapsed to a single answer.
 
-\emph{Statistical sequence workloads with low retention demand} --- perception streams,
-sensor fusion, language-like statistics --- tolerate a lossy recurrent state, and there the
-analog/compute-in-memory route is the fit: on char-LM it holds the state in analog dynamics,
+\emph{Statistical sequence workloads with low retention demand} tolerate a lossy recurrent
+state where we measured it on char-LM: the analog route holds the state in analog dynamics,
 communicates on 61\% of steps, and pays $+0.160$ bpc (5.3\%) against a noise-regularized
 digital baseline for a $1.60\times$ proxy-energy reduction
-(Section~\ref{sec:charlm-claim}). This is a tradeoff, not a free lunch, but it is the only
-cell in either task where a neuromorphic datapath buys energy at single-digit quality cost.
+(Section~\ref{sec:charlm-claim}). This is a tradeoff, not a free lunch, and it is the only
+cell in any task where a neuromorphic datapath buys energy at single-digit quality cost ---
+the tolerance is not generic to statistical workloads: on a streaming perception task at a
+small-output shape the same analog state costs $10$--$19$ accuracy points, budget-robustly
+(Section~\ref{sec:hardware-shape}).
 
 \emph{Precise-recall workloads} invert the choice. On copy the analog route loses to
 output-spiking on \emph{both} axes (Section~\ref{sec:hardware-energy}), and the route that
@@ -164,4 +168,82 @@ The design conclusion is blunt. On a language-like workload the pJ ceiling of th
 datapath family is set by the readout width, not by the state mechanism, and the readout's
 75\% share resists both known gating mechanisms: hold-based schemes are quality-fatal, and
 spike-based schemes save no arithmetic. Claims of large energy wins from sparsifying an
-SSM recurrence should be read against the 8\% share that term actually carries.
+SSM recurrence should be read against the 8\% share that term actually carries \emph{at a
+language-model shape} --- Section~\ref{sec:hardware-shape} shows that both the share and
+the ceiling are set by the readout-to-state ratio $V/H$, and tests the shape where the
+projection favours the recurrence.
+
+\subsection{The ceiling is a shape property --- and the shape that recovers the energy
+fails on quality}
+\label{sec:hardware-shape}
+
+The $1.74\times$ ceiling above is a property of $V/H = 1.11$, not of the analog datapath.
+Sweeping the same accounting (identical terms, nothing re-derived) over readout width $V$
+at fixed $E{=}64$, $H{=}256$ and the measured char-LM operating point ($r_z = 0.6122$,
+three seeds): at $V{=}10$ ($V/H = 0.04$) the readout falls to 9.5\% of the analog total,
+the recurrence becomes the \emph{largest} single term (29.2\%), and the same measured
+activity is worth a projected $3.16\times$ (ceiling $4.46\times$); at $V{=}284$ (char-LM),
+$1.60\times$ (ceiling $1.74\times$); at $V{=}1024$, $1.20\times$; at a word-piece
+vocabulary ($V{=}32{,}000$), $1.01\times$ --- nothing. Two corollaries sharpen the sweep.
+The published $1.60\times$ realizes 92\% of its own shape's ceiling, so there was never
+anything left to win at char-LM, whereas at $V{=}10$ the measured activity realizes only
+71\% of the ceiling. And at $V{=}10$ the projected advantage \emph{grows} with $H$
+($1.70\times$/$3.16\times$/$5.58\times$ at $H{=}64$/$256$/$1024$), because the
+event-priced term is the $H^{2}$ one --- the opposite of the char-LM regime. Pricing the
+input as an event stream (symmetrically: it is equally available to the digital arm) is
+worth $+0.12\times$ at $V{=}284$ but $+3.06\times$ at $V{=}10$, where removing the readout
+blocker promotes $W_{\mathrm{in}}$ to 61\% of the analog total; the two effects are
+multiplicative, reaching $6.21\times$ at $V{=}10$ with input event rate $0.2$. Converters
+re-checked at their most favourable corner ($V{=}10$ with event input) reach 0.58\% ---
+still not decisive, now as a bounded statement.
+
+The projection therefore locates the one shape where a large pJ win is available, and no
+quality number had ever been measured there. We measured it, with criteria pre-registered
+before any cell ran: FashionMNIST row streaming (28 steps of 28 pixels, $V{=}10$,
+$V/H = 0.039$, chance accuracy $0.10$, parameter-matched at $86{,}858$). The
+\emph{energy} side of the shape law confirms out of sample: measured $3.29\times$ against
+the projected $3.16\times$, and the digital arm's decomposition inverts exactly as
+predicted ($W_{\mathrm{mix}}$ 75.7\%, $W_{\mathrm{in}}$ 21.0\%, $W_{\mathrm{out}}$ 3.0\%).
+The \emph{quality} side is refuted: against the noise-regularized reference (accuracy
+$0.7878$), the best analog setting ($\theta{=}0.15$, state event rate $0.428$) reaches
+$0.6774$ --- an 11.0-point deficit, and the deficit exceeds the pre-registered 5-point
+criterion at every threshold ($11.0$/$19.0$/$25.7$/$42.3$/$58.3$ points at
+$\theta = 0.15$--$2.0$). Unlike the copy collapse this is a graded tradeoff, not a
+training failure --- the event rate falls smoothly $0.43 \to 0.05$ --- but no point on
+the curve is quality-matched.
+
+The deficit is budget-robust. Because the copy row had taught us that budget-limited
+baselines mislead, we re-ran the reference and both leading analog cells at three times
+the epochs and the full training set ($30$ epochs, $60$k images, pre-registered): the
+reference improves to $0.8442$ (the training-time noise benefit of
+Section~\ref{sec:charlm-control} reappears at the long budget, reversing the short-budget
+ordering), the analog cells improve in step, and the deficit is flat
+($11.0 \to 10.4$ and $19.0 \to 18.9$ points). Tripling the budget moves the gap by less
+than $0.6$ points, so the deficit is a property of the lossy analog state at this shape,
+not of an under-trained reference.
+
+Three readings, in decreasing order of importance. First, the $3.3$--$4.0\times$ band is
+\emph{shape-determined, not mechanism-determined}: all three neuromorphic variants land in
+it (output-spiking $3.34\times$ at accuracy $0.6486$, spiking-state $3.63\times$ at
+$0.5298$), because at $V{=}10$ the recurrence dominates and every mechanism earns event
+pricing on it --- no mechanism can claim the factor. Second, the analog route is the best
+non-digital variant here (the char-LM ordering reproduces; the copy inversion does not,
+consistent with Section~\ref{sec:hardware-split}), but only by 2.9 points over
+output-spiking --- and output-spiking's $3.34\times$ carries no graded-event pricing
+ambiguity, while analog's $3.29\times$ falls to $1.77\times$ if each graded event is
+conservatively priced as a MAC. Priced conservatively, the defensible operating point at
+this shape is a spiked output on an exact state, not an analog state. Third, the principle
+of Section~\ref{sec:principle} predicted the opposite outcome here --- a state degradation
+was expected to be cheap on a statistical workload --- which is its second failed forecast
+(Section~\ref{sec:principle-against}).
+
+Across every shape tested, the recoverable energy and the tolerable quality loss never
+co-occur: at the language shape the quality cost is single-digit but the readout strands
+the energy; at the streaming shape the energy is real and measured but the analog state
+costs double-digit accuracy at every threshold and every budget tested. The verdict is
+therefore unqualified within the tested space: \emph{no quality-matched pJ win at any
+model shape tested, at any training budget tested.} Caveats: the streaming cells are
+single-seed (the effects, $10$--$19$ points, dwarf the $\leq 1$-point seed noise
+everywhere else in this pipeline); the input is dense, so the $6.21\times$ event-input
+corner is untested --- but it improves only the energy axis, which is not the axis that
+failed; and all figures remain the 45\,nm proxy.
