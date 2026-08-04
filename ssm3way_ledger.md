@@ -2449,3 +2449,161 @@ LOCAL-only (server has no LibreOffice); PDF is 10 pages, 169 kB.
 paper2 + PDF, deck + PDF, speaker notes) is now post-retraction and carries the energy-datapath
 verdict. Remaining items are USER decisions: (1) send `talk/imam_ssm_memo_v3.md` to Imam
 (outward-facing, never auto-send), (2) arXiv-submit paper 2, (3) optional paper 1 v2.
+
+---
+
+## 2026-08-04 ~04:40Z — ENERGY-DATAPATH, REOPENED ONE NOTCH: the stranded-readout verdict is a MODEL-SHAPE statement, not a property of the analog route. Zero-GPU (`energy_shape.py`).
+
+All 8 A800s idle (1 MiB, 0%, zero compute apps), zero `ssm3way.py` procs, repo in sync @d05d244.
+Nothing launched this tick. New file `energy_shape.py`; it imports `terms()` from
+`energy_datapath.py` verbatim, so **no accounting is re-derived or re-priced** — the only
+new thing is sweeping the model shape (V, H) and the input event rate over the published
+energy model, at the *measured* char-LM operating point.
+
+### 0. An analysis bug found and fixed — display-only, NO published claim affected
+
+`energy_datapath.py`'s `label()` groups cells by variant/θ/dig_reg but **ignores
+`out_theta` and `out_prand`**. With the readout-gated cells now on disk (38 carry a
+nonzero `out_theta`, 12 an `out_prand`) its PART 1 silently **pools gated with no-gate
+cells**: it printed `analog th=0.15` at **n=20, bpc 4.018** and `digital+n0.02` at
+**n=24, bpc 4.028** — those bpc values are the *gated collapse*, not the operating point.
+Same class of bug as the `agg_copy.py` budget-pooling one (34e1fd0).
+
+`energy_shape.py` filters to the un-gated datapath and **reproduces the published numbers
+exactly**, which is how we know only the display was wrong and nothing citable moved:
+
+| quantity | published | recomputed (no-gate filter) |
+|---|---|---|
+| analog θ=0.15 bpc, 3 seeds | 3.1936 | **3.1936** |
+| digital+n0.02 bpc, 3 seeds | 3.0338 | **3.0338** |
+| analog quality cost vs regularized ref | +0.160 | **+0.1598** |
+| analog θ=0.15 emitted rate | 0.61 | **0.6122 ± 0.0064** |
+| analog / ref proxy-energy ratio | 1.60× | **1.597×** |
+
+Anyone re-running `energy_datapath.py` must read its PART 1 `n` column and discount the
+pooled rows, or use `energy_shape.py` PART 0 instead.
+
+### 1. THE SHAPE LAW — what the SAME measured event activity is worth at other shapes
+
+Held fixed: E=64, H=256, r_z=0.6122 (measured, 3 seeds), published `terms()` accounting.
+Only the readout width V varies. `ceil` = analog with a *free* recurrence at that shape.
+
+| V | V/H | W_out% (ana) | W_mix% (ana) | ref pJ/tok | analog pJ/tok | ratio | ceil |
+|---|---|---|---|---|---|---|---|
+| 10 | 0.04 | 9.5 | 29.2 | 389,786 | 123,494 | **3.16×** | 4.46× |
+| 20 | 0.08 | 17.4 | 26.7 | 401,562 | 135,270 | 2.97× | 4.05× |
+| 35 | 0.14 | 27.0 | 23.6 | 419,226 | 152,934 | 2.74× | 3.59× |
+| 65 | 0.25 | 40.7 | 19.2 | 454,554 | 188,262 | 2.41× | 2.99× |
+| **284** | **1.11** | **75.0** | **8.1** | **712,448** | **446,157** | **1.60×** | **1.74×** |
+| 1024 | 4.00 | 91.5 | 2.7 | 1,583,872 | 1,317,581 | 1.20× | 1.24× |
+| 32000 | 125.0 | 99.7 | 0.1 | 38,061,210 | 37,794,918 | 1.01× | 1.01× |
+
+**The 75%-readout / 8%-recurrence split and the 1.74× free-recurrence ceiling are
+properties of `V/H = 1.11`, not of the analog datapath.** At a streaming-classification
+shape (V/H = 0.04) the *same measured activity* is worth **3.16×**, the readout falls to
+9.5% of the total, and the recurrence — the term every neuromorphic mechanism in this
+literature acts on — becomes the largest single term at 29.2%. At a word-piece vocabulary
+it goes the other way and the route is worth **nothing** (1.01×).
+
+Two consequences that must be written into any restatement:
+- The phase verdict "analog does not win on pJ" is **correct as a char-LM result and wrong
+  as a general one.** Paper2 sec 8.4 / sec 9 already flag the ceiling as "a model-shape
+  property — at H≫V the recurrence would dominate"; that flag is now a quantified law and
+  should be upgraded from a caveat to a table.
+- The published 1.60× sits at **92% of its shape's ceiling** (1.60/1.74) — there was almost
+  nothing left to win at char-LM. At V=10 the measured activity reaches only **71%** of the
+  4.46× ceiling, so further recurrence sparsification would still buy something there.
+
+### 2. The law in the other variable — the advantage GROWS with state width at small V
+
+V=10, E=64, same measured r_z: H=64 → 1.70×; H=128 → 2.27×; H=256 → 3.16×; H=512 → 4.33×;
+H=1024 → **5.58×**. The term the analog datapath event-prices is the one that scales as
+H², so at fixed small V a wider state helps it — the exact opposite of the char-LM regime,
+and a testable prediction rather than an interpretation.
+
+### 3. Goal item (1) re-scored — the previous deferral was right about char-LM and WRONG in general
+
+Priced **symmetrically**: a genuinely event-like input stream is available to the digital
+SSM too, so both arms get W_in at r_in. (This is the lesson the readout row taught — the
+digital arm got the same gate for free, which is why none of the readout saving was
+attributable to the analog state.)
+
+| V | r_in | ref pJ/tok | analog pJ/tok | ratio | Δ vs dense input |
+|---|---|---|---|---|---|
+| 10 | 1.00 | 389,786 | 123,494 | 3.16× | — |
+| 10 | 0.50 | 321,792 | 55,501 | 5.80× | **+2.64** |
+| 10 | 0.20 | 317,368 | 51,077 | **6.21×** | **+3.06** |
+| 10 | 0.05 | 315,156 | 48,865 | 6.45× | +3.29 |
+| 284 | 1.00 | 712,448 | 446,157 | 1.60× | — |
+| 284 | 0.20 | 640,031 | 373,740 | 1.71× | +0.12 |
+
+**Correction to a9ff715's deferral of goal (1).** That entry deferred the sparse-input
+streaming task as "low-payoff — W_in is only 11–18% of the total". That share is a
+char-LM number, and at char-LM's shape the deferral is right (input pricing is worth
++0.12×). But **W_in's share of the analog total is 61% at V=10**, because removing the
+readout blocker promotes the input to being the blocker. So the two goal items are
+**multiplicative, not independent**: small V alone is worth 1.60→3.16×, and event input
+*on top of* small V is worth a further +3.06×, for **6.21×** at r_in=0.2. Goal item (1) is
+only low-payoff at the shape where the route is worthless anyway.
+
+### 4. Converters/storage — checked at the corner where they had the best chance, still small
+
+`energy_datapath.py` PART 4 found the previously-unpriced analog storage + ADC/DAC terms at
+0.00–0.33% of the total at V=284, with the standing note that they "only start to matter
+once the matrices are cheap". V=10 is that regime, so it was checked rather than assumed:
+at V=10 under the current datapath they are **0.00–0.23%** over the full four-decade
+converter × 25× storage sweep, and at the genuinely cheapest corner (V=10 **and** event
+input at r_in=0.05, E_conv=1.0 pJ/event, E_store=0.5 pJ/unit/step) they reach
+**0.58%** of a 49,135 pJ/token total. So the converters do not decide the verdict at any
+shape tested — but this is now a *bounded* statement, not an extrapolation, and it still
+must not be phrased as "converters are free".
+
+### 5. PRE-REGISTRATION — the streaming run this analysis justifies (NOT yet implemented)
+
+The analysis says exactly one experiment is worth GPU time, and it is the one goal item (1)
+asked for, now for the right reason: **the only shape where the analog route has a large
+projected pJ win is small-V streaming, and no quality number has ever been measured there.**
+
+Design (fixed here, before any cell, so it cannot be fitted afterwards):
+- **Task:** FashionMNIST row-streaming — 28 timesteps × 28 pixels, 10-class readout
+  (V=10, V/H=0.039). Data is already local (`neuro_poc.py`'s `DATA_ROOT`, download=False);
+  the incomplete 3.1 MB NMNIST partial is NOT usable and is not used. This is a
+  *statistical* sequence workload, not precise-recall, which is the class the project
+  already recommends the analog route for.
+- **Input:** delta-encoded between consecutive rows so W_in is legitimately event-priced,
+  and `r_in` is **MEASURED from the data**, never assumed. Priced symmetrically across arms.
+- **Variants:** the same param-matched four, plus the `dig_noise 0.02` regularized digital
+  reference (the comparator whose absence produced this project's one retraction).
+- **Metric:** accuracy (chance 0.10) + margin kept vs the regularized reference; r_z, r_in,
+  r_out all measured; pJ/token via `energy_datapath.terms()` at the streaming shape.
+- **θ must be re-calibrated on this task.** θ already failed to transfer char-LM→copy
+  (a9f36d2), and the ADC LSB floors it at 0.125 (83e110a), so calibration is part of the run.
+
+Criteria, pre-registered:
+1. **CONFIRMATION** — some θ keeps **≥0.95** of the regularized reference's accuracy at
+   **r_z ≤ 0.65**. Then the projected ≥3× cut is real at measured activity, and the phase
+   verdict becomes *"no pJ win at LM shape; a 3–6× win at streaming shape"* — the first
+   large measured pJ advantage in the project.
+2. **REFUTATION** — at every θ with r_z ≤ 0.8 the accuracy deficit exceeds **5 points**.
+   Then the analog state is not cheap on this workload either and the "no pJ win" verdict
+   generalizes *beyond* model shape, which is the stronger negative and must be reported
+   as such.
+3. **PARTIAL** — a graded tradeoff: report the accuracy-per-pJ curve, no headline flip.
+4. **MOST LIKELY: (1)**, because a state degradation is the cheap kind on a statistical
+   workload (+0.160 bpc on char-LM vs +0.9 on copy) — **but the datapath-degradation
+   principle has already made one confidently wrong prediction** (it predicted the event
+   readout would be cheap on precise-recall; it eliminated the task entirely, 5df8644 /
+   73c99e6), so this is a hypothesis, not a forecast. A distinct failure mode to watch:
+   r_z may simply not drop on this task at any usable θ, as happened on copy — in which
+   case the calibration, not the criteria, is the result.
+
+Caveats owed regardless of outcome: accuracy not bpc, so "margin kept" is against
+chance 0.10; every pJ figure remains a **45 nm Horowitz proxy from simulation**, not
+silicon; and the shape law in §1–3 is arithmetic over that proxy at char-LM's *measured*
+activity — it establishes where a win is *possible*, and nothing about whether quality
+survives there.
+
+**THREAD STATE: one open data question again** (it had none since 13:20Z 2026-08-03), and it
+is fully specified above. Paper2 sec 8.4 needs the shape table folded in once the streaming
+result lands — until then its "model-shape property" caveat is accurate and no correction is
+owed. User decisions unchanged: send memo v3 to Imam; arXiv-submit paper 2.
