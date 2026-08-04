@@ -2812,3 +2812,56 @@ at ep30/n60k — the harsher and honest comparator.
 
 **Caveats fixed now:** n=1 seed (this is a budget probe, not a paper cell; 3 seeds owed
 at whatever budget survives); dense input (energy-axis-only corner untested); 45nm proxy.
+
+## 2026-08-04 ~06:10Z — STREAM BUDGET CHECK CLOSED: pre-registered CLOSE branch MET — the streaming-shape REFUTE is BUDGET-ROBUST and the arm is dead for good
+
+Row 39a6873 (5 cells, seed 0, ep30 / full 60k train / nval 5000, dense input, suffix `_n60k_ep30`)
+completed 05:52–06:00Z; all cells aggregated below. Criteria were pre-registered in 39a6873
+BEFORE any cell ran and are applied verbatim, no refitting.
+
+**Reference selection (per pre-registration: the BETTER of the two digital arms at ep30/n60k):**
+
+| cell | acc | bpc | pJ/tok |
+|---|---|---|---|
+| digital reg n0.02 (REFERENCE) | **0.8442** | 0.6564 | 398,029 |
+| digital plain | 0.8382 | 0.6983 | 398,029 |
+| analog θ=0.15 | 0.7404 | 1.0912 | 121,158 (cons. 226,162) |
+| analog θ=0.25 | 0.6556 | 1.4376 | 115,802 (cons. 198,790) |
+| spikeout | 0.6652 | 1.2892 | 123,615 |
+
+Chance acc 0.10. analog r_z (rate_emitted) = 0.433 / 0.342 at θ=0.15/0.25 — both under the 0.65
+gate, so the cells are valid tests of the CLOSE/REOPEN question, not calibration failures.
+
+**VERDICT — CLOSE.** Both analog cells still exceed a 5-point deficit vs the reference:
+θ=0.15 → **−10.4 pts** (0.7404 vs 0.8442), θ=0.25 → **−18.9 pts**. The pre-registered sentence
+applies: the ep10 REFUTE was NOT budget-limited; the "at our budget" qualifier DROPS everywhere.
+Combined with c18c724, the project-wide verdict is now unqualified at every shape tested:
+**there is no quality-matched pJ win at any model shape tested, at any training budget tested.**
+
+**The trend the pre-registration demanded (deficit ep10→ep30, must not be pooled):** the deficit
+is essentially FLAT — θ=0.15: 11.0 → 10.4 pts; θ=0.25: 19.0 → 18.9 pts — while BOTH arms improved
+absolutely (ref 0.7878→0.8442, analog θ=0.15 0.6774→0.7404). Tripling epochs and 3× data moves
+the gap by ≤0.6 points: the deficit is a property of the lossy analog state at this shape, not of
+an under-trained baseline. (Contrast the copy row, where the same check moved digital acc 0.41→0.64
+and legitimately reopened the row — this one does not.)
+
+**Secondary observations (n=1, note-grade):**
+- The char-LM noise-regularization gift REAPPEARS at the long budget: reg n0.02 beats plain digital
+  0.8442 vs 0.8382 at ep30, reversing the ep10 ordering (0.788 vs 0.799). Budget-dependent, small,
+  and it is why the pre-registration required measuring BOTH digital arms rather than assuming one.
+- Energy side stays exactly on the shape law: analog θ=0.15 = 3.29× optimistic / 1.76× conservative,
+  spikeout 3.34× (no graded-event ambiguity) — unchanged from ep10, as expected (pricing depends on
+  rates, and r_z is stable 0.428→0.433).
+- spikeout again within ~1 pt of analog θ=0.25 at matched-ish emission; the "conservatively priced,
+  spikeout is the better engineering point" reading from c18c724 survives the budget change.
+
+**Caveats:** n=1 seed at ep30 (the closing verdict rests on the sign and size of a 10–19-pt effect,
+far above the ≤1-pt seed noise seen on this pipeline's other rows, but stream seed sd is unmeasured);
+dense input (the event-input corner is untested — it improves only the energy axis, which was never
+the failing axis); 45nm proxy, readout priced per step.
+
+**THREAD STATE: the streaming arm is CLOSED (negative, budget-robust). NO open data question.**
+Remaining tick-work = the WRITEUP NARROWING (per the 2026-08-04 ~05:40Z entry): paper2 sec 8.4/sec 9
++ memo v3 + deck must state the streaming shape as "energy recoverable (3.3×) but quality-refuted
+(10–19-pt deficit, budget-robust)" — nothing Imam-facing may claim the streaming shape rescues the
+route, and the "at our budget" hedge is no longer needed or accurate. User decisions unchanged.
